@@ -1,0 +1,117 @@
+{
+  "entities": {
+    "Obra": {
+      "title": "Obra",
+      "description": "Local de trabalho onde as obras ocorrem",
+      "type": "object",
+      "properties": {
+        "codigo": { "type": "string" },
+        "nome": { "type": "string" },
+        "status": { "type": "string", "enum": ["Ativa", "Concluída", "Pausada"] },
+        "dataInicio": { "type": "string" },
+        "numFuncionarios": { "type": "number" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["codigo", "nome", "status", "createdAt"]
+    },
+    "Cargo": {
+      "title": "Cargo",
+      "description": "Cargo e suas exigências de EPI",
+      "type": "object",
+      "properties": {
+        "codigo": { "type": "string" },
+        "titulo": { "type": "string" },
+        "episExigidos": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["codigo", "titulo", "createdAt"]
+    },
+    "Funcionario": {
+      "title": "Funcionário",
+      "description": "Funcionário que recebe EPIs",
+      "type": "object",
+      "properties": {
+        "matricula": { "type": "string" },
+        "nome": { "type": "string" },
+        "obraId": { "type": "string" },
+        "cargoId": { "type": "string" },
+        "fotoUrl": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["matricula", "nome", "obraId", "cargoId", "createdAt"]
+    },
+    "AdminPerfil": {
+      "title": "Perfil de Administrador",
+      "description": "Permissões atreladas a um funcionário",
+      "type": "object",
+      "properties": {
+        "funcionarioId": { "type": "string" },
+        "nomeFuncionario": { "type": "string" },
+        "contato": { "type": "string" },
+        "nivel": { "type": "string", "enum": ["master", "coordenador", "despachante"] },
+        "status": { "type": "string", "enum": ["Ativo", "Inativo"] },
+        "fotoUrl": { "type": "string" },
+        "authUid": { "type": "string", "description": "Se houver login vinculado, senão null" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["funcionarioId", "nomeFuncionario", "nivel", "status", "createdAt"]
+    },
+    "EntregaEpi": {
+      "title": "Entrega de EPI",
+      "description": "Registro de entrega de EPI para um funcionário",
+      "type": "object",
+      "properties": {
+        "funcionarioId": { "type": "string" },
+        "codigoEpi": { "type": "string" },
+        "quantidade": { "type": "number" },
+        "ca": { "type": "string" },
+        "dataEntrega": { "type": "string" },
+        "dataDevolucao": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["funcionarioId", "codigoEpi", "quantidade", "ca", "dataEntrega", "createdAt"]
+    },
+    "Alerta": {
+      "title": "Alerta",
+      "description": "Alertas do sistema, como validade de CA, estoque baixo",
+      "type": "object",
+      "properties": {
+        "tipo": { "type": "string", "enum": ["warning", "error", "info"] },
+        "mensagem": { "type": "string" },
+        "data": { "type": "string" },
+        "resolvido": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["tipo", "mensagem", "data", "resolvido", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/obras": {
+      "schema": { "$ref": "Obra" },
+      "description": "Obras cadastradas"
+    },
+    "/cargos": {
+      "schema": { "$ref": "Cargo" },
+      "description": "Cargos cadastrados e seus EPIs"
+    },
+    "/funcionarios": {
+      "schema": { "$ref": "Funcionario" },
+      "description": "Funcionários e seus dados"
+    },
+    "/admins": {
+      "schema": { "$ref": "AdminPerfil" },
+      "description": "Administradores com permissões"
+    },
+    "/entregas": {
+      "schema": { "$ref": "EntregaEpi" },
+      "description": "Registro de todas as entregas de EPI"
+    },
+    "/alertas": {
+      "schema": { "$ref": "Alerta" },
+      "description": "Alertas recentes do sistema"
+    }
+  }
+}

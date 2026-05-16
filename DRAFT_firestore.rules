@@ -1,0 +1,106 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() { return request.auth != null; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // Permitir acesso básico para qualquer dev autenticado (protótipo) enquanto ajustamos os papéis.
+    // Em produção, isso seria restrito à coleção `admins`.
+    function isDev() { return isSignedIn(); }
+
+    match /obras/{obraId} {
+      function isValidObra(data) {
+        return data.keys().hasAll(['codigo', 'nome', 'status', 'createdAt'])
+            && data.codigo is string && data.codigo.size() <= 20
+            && data.nome is string && data.nome.size() <= 100
+            && data.status is string && data.status in ["Ativa", "Concluída", "Pausada"]
+            && data.createdAt is int;
+      }
+      allow read: if isDev();
+      allow create: if isDev() && isValidId(obraId) && isValidObra(incoming()) && incoming().keys().size() == 5; // + numFuncionarios
+      allow update: if isDev() && isValidId(obraId) && isValidObra(incoming());
+      allow delete: if isDev();
+    }
+
+    match /cargos/{cargoId} {
+      function isValidCargo(data) {
+        return data.keys().hasAll(['codigo', 'titulo', 'createdAt'])
+            && data.codigo is string && data.codigo.size() <= 20
+            && data.titulo is string && data.titulo.size() <= 100
+            && data.createdAt is int;
+      }
+      allow read: if isDev();
+      allow create: if isDev() && isValidId(cargoId) && isValidCargo(incoming());
+      allow update: if isDev() && isValidId(cargoId) && isValidCargo(incoming());
+      allow delete: if isDev();
+    }
+
+    match /funcionarios/{funcionarioId} {
+      function isValidFunc(data) {
+        return data.keys().hasAll(['matricula', 'nome', 'obraId', 'cargoId', 'createdAt'])
+            && data.matricula is string && data.matricula.size() <= 40
+            && data.nome is string && data.nome.size() <= 100
+            && data.obraId is string && data.obraId.size() <= 128
+            && data.cargoId is string && data.cargoId.size() <= 128
+            && data.createdAt is int;
+      }
+      allow read: if isDev();
+      allow create: if isDev() && isValidId(funcionarioId) && isValidFunc(incoming());
+      allow update: if isDev() && isValidId(funcionarioId) && isValidFunc(incoming());
+      allow delete: if isDev();
+    }
+
+    match /admins/{adminId} {
+      function isValidAdmin(data) {
+        return data.keys().hasAll(['funcionarioId', 'nomeFuncionario', 'nivel', 'status', 'createdAt'])
+            && data.funcionarioId is string && data.funcionarioId.size() <= 128
+            && data.nomeFuncionario is string && data.nomeFuncionario.size() <= 100
+            && data.nivel is string && data.nivel in ["master", "coordenador", "despachante"]
+            && data.status is string && data.status in ["Ativo", "Inativo"]
+            && data.createdAt is int;
+      }
+      allow read: if isDev();
+      allow create: if isDev() && isValidId(adminId) && isValidAdmin(incoming());
+      allow update: if isDev() && isValidId(adminId) && isValidAdmin(incoming());
+      allow delete: if isDev();
+    }
+
+    match /entregas/{entregaId} {
+      function isValidEntrega(data) {
+        return data.keys().hasAll(['funcionarioId', 'codigoEpi', 'quantidade', 'ca', 'dataEntrega', 'createdAt'])
+            && data.funcionarioId is string && data.funcionarioId.size() <= 128
+            && data.codigoEpi is string && data.codigoEpi.size() <= 100
+            && data.quantidade is number
+            && data.ca is string && data.ca.size() <= 100
+            && data.dataEntrega is string && data.dataEntrega.size() <= 40
+            && data.createdAt is int;
+      }
+      allow read: if isDev();
+      allow create: if isDev() && isValidId(entregaId) && isValidEntrega(incoming());
+      allow update: if isDev() && isValidId(entregaId) && isValidEntrega(incoming());
+      allow delete: if isDev();
+    }
+
+    match /alertas/{alertaId} {
+      function isValidAlerta(data) {
+        return data.keys().hasAll(['tipo', 'mensagem', 'data', 'resolvido', 'createdAt'])
+            && data.tipo is string && data.tipo in ["warning", "error", "info"]
+            && data.mensagem is string && data.mensagem.size() <= 500
+            && data.data is string && data.data.size() <= 40
+            && data.resolvido is bool
+            && data.createdAt is int;
+      }
+      allow read: if isDev();
+      allow create: if isDev() && isValidId(alertaId) && isValidAlerta(incoming());
+      allow update: if isDev() && isValidId(alertaId) && isValidAlerta(incoming());
+      allow delete: if isDev();
+    }
+  }
+}
