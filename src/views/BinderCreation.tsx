@@ -98,6 +98,13 @@ export function BinderCreation({ onBack }: BinderCreationProps) {
   };
 
   const handleSave = () => {
+    if (!formData.codigo) {
+      alert('Preencha os campos obrigatórios.');
+      return;
+    }
+    if (!confirm('Tem certeza que deseja salvar esta entrada no fichário?')) {
+      return;
+    }
     if (editingEntryId) {
       setBinderEntries(binderEntries.map(e => e.id === editingEntryId ? { ...e, ...formData } as BinderEntry : e));
     } else {

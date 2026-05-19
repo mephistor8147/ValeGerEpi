@@ -82,6 +82,10 @@ export function AdminManagement({ onBack }: AdminManagementProps) {
       return;
     }
 
+    if (!confirm('Tem certeza que deseja salvar este administrador?')) {
+      return;
+    }
+
     const funcionario = funcionarios.find(f => f.id === formData.funcionarioId);
     
     try {

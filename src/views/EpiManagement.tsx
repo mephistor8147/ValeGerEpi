@@ -29,6 +29,10 @@ export function EpiManagement({ onBack }: EpiManagementProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<EpiItem>>({});
 
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+
   useEffect(() => {
     const unsubEpis = onSnapshot(collection(db, 'epis'), (snapshot) => {
       setEpis(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as EpiItem)));
@@ -42,14 +46,15 @@ export function EpiManagement({ onBack }: EpiManagementProps) {
   }, []);
 
   const categorias = [
-    'Proteção da cabeça',
+    'Proteção da Cabeça',
+    'Proteção das Mãos',
     'Proteção Ocular',
-    'Proteção auditiva',
-    'Proteção das mãos',
-    'Proteção dos pés',
-    'Proteção do corpo',
-    'Proteção contra quedas'
-  ];
+    'Proteção contra Queda',
+    'Proteção dos Pés',
+    'Proteção do Corpo',
+    'Proteção Respiratória',
+    'Proteção Auditiva'
+  ].sort();
 
   const handleCreateNew = () => {
     setEditingId(null);
@@ -66,25 +71,34 @@ export function EpiManagement({ onBack }: EpiManagementProps) {
     setViewMode('form');
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este EPI?')) {
+  const confirmDelete = async () => {
+    if (itemToDelete) {
       try {
-        await deleteDoc(doc(db, 'epis', id));
+        await deleteDoc(doc(db, 'epis', itemToDelete));
+        setItemToDelete(null);
       } catch (error) {
         handleFirestoreError(error, OperationType.DELETE, 'epis');
       }
     }
   };
 
+  const handleDelete = (id: string) => {
+    setItemToDelete(id);
+  };
+
   const handleSave = async () => {
-    if (!formData.codigo || !formData.nome || !formData.categoria) {
-      alert('Preencha os campos obrigatórios (Código, Nome, Categoria).');
+    if (!formData.nome || !formData.categoria) {
+      alert('Preencha os campos obrigatórios (Nome, Categoria).');
+      return;
+    }
+
+    if (!confirm('Tem certeza que deseja salvar este EPI?')) {
       return;
     }
 
     try {
       const epiData = {
-        codigo: formData.codigo,
+        codigo: formData.codigo || '',
         ca: formData.ca || '',
         obraId: formData.obraId || '',
         nome: formData.nome,
@@ -109,9 +123,26 @@ export function EpiManagement({ onBack }: EpiManagementProps) {
     }
   };
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, fotoUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  const filteredEpis = epis.filter(epi => 
+    epi.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    epi.codigo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    epi.ca?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="flex flex-col flex-1 bg-gray-50 h-full">
@@ -132,6 +163,8 @@ export function EpiManagement({ onBack }: EpiManagementProps) {
                 <input 
                   type="text" 
                   placeholder="Buscar EPI..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-[#0B5C36] outline-none"
                 />
               </div>
@@ -142,7 +175,7 @@ export function EpiManagement({ onBack }: EpiManagementProps) {
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-3 pb-safe">
-              {epis.map(epi => (
+              {filteredEpis.map(epi => (
                 <div key={epi.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 group">
                   <div className="w-14 h-14 bg-gray-50 rounded-xl flex items-center justify-center shrink-0 border border-gray-100">
                     {epi.fotoUrl ? (
@@ -169,9 +202,9 @@ export function EpiManagement({ onBack }: EpiManagementProps) {
                   </div>
                 </div>
               ))}
-              {epis.length === 0 && (
+              {filteredEpis.length === 0 && (
                 <div className="text-center text-gray-500 mt-10">
-                  Nenhum EPI cadastrado.
+                  Nenhum EPI encontrado.
                 </div>
               )}
             </div>
@@ -182,17 +215,18 @@ export function EpiManagement({ onBack }: EpiManagementProps) {
               
               {/* Image Upload Area */}
               <div className="flex flex-col items-center justify-center gap-3">
-                <div className="w-28 h-28 bg-gray-100 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 relative overflow-hidden group">
+                <label className="w-28 h-28 bg-gray-100 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 relative overflow-hidden group cursor-pointer">
                   {formData.fotoUrl ? (
                     <img src={formData.fotoUrl} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
                     <Camera size={32} />
                   )}
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Upload size={24} className="text-white" />
                   </div>
-                </div>
-                <p className="text-sm font-medium text-[#0B5C36] cursor-pointer hover:underline">Adicionar foto (Câmera/Envio)</p>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                </label>
+                <p className="text-sm font-medium text-[#0B5C36]">Adicionar foto (Câmera/Envio)</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -254,6 +288,29 @@ export function EpiManagement({ onBack }: EpiManagementProps) {
           </div>
         )}
       </div>
+
+      {itemToDelete && (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Excluir EPI</h3>
+            <p className="text-gray-600 mb-6">Tem certeza que deseja excluir este EPI? Esta ação não pode ser desfeita.</p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setItemToDelete(null)}
+                className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="flex-1 bg-red-600 text-white py-3 rounded-xl font-bold hover:bg-red-700 transition-colors"
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

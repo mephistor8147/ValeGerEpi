@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Plus, Search, ChevronRight } from 'lucide-react';
+import { ChevronLeft, Search, ChevronRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 
 interface EmployeesProps {
   onBack: () => void;
-  onSelectEmployee: () => void;
+  onSelectEmployee: (id: string) => void;
 }
 
 interface Employee {
@@ -15,12 +15,14 @@ interface Employee {
   nome: string;
   cargoId: string;
   fotoUrl?: string;
+  status?: string;
 }
 
 export function Employees({ onBack, onSelectEmployee }: EmployeesProps) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [cargos, setCargos] = useState<{ id: string, titulo: string }>({});
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'Todos' | 'Ativos' | 'Inativos'>('Todos');
 
   useEffect(() => {
     const unsubEmp = onSnapshot(collection(db, 'funcionarios'), (snapshot) => {
@@ -44,9 +46,16 @@ export function Employees({ onBack, onSelectEmployee }: EmployeesProps) {
   const filteredEmployees = employees.filter(emp => {
     const searchLower = searchQuery.toLowerCase();
     const cargoTitle = cargos[emp.cargoId as keyof typeof cargos] || '';
-    return emp.nome?.toLowerCase().includes(searchLower) ||
+    const matchesSearch = emp.nome?.toLowerCase().includes(searchLower) ||
            emp.matricula?.toLowerCase().includes(searchLower) ||
            cargoTitle.toLowerCase().includes(searchLower);
+           
+    const empStatus = emp.status || 'Ativo';
+    
+    if (filterType === 'Ativos' && empStatus !== 'Ativo') return false;
+    if (filterType === 'Inativos' && empStatus !== 'Inativo') return false;
+    
+    return matchesSearch;
   });
 
   return (
@@ -56,7 +65,7 @@ export function Employees({ onBack, onSelectEmployee }: EmployeesProps) {
         <button onClick={onBack} className="p-2 md:hidden"><ChevronLeft size={24} /></button>
         <div className="hidden md:block p-2 cursor-pointer" onClick={onBack}><ChevronLeft size={24} className="hover:text-gray-200 transition-colors" /></div>
         <h1 className="text-xl md:text-2xl font-bold">Funcionários</h1>
-        <button className="p-2 hover:bg-white/10 rounded-full transition-colors"><Plus size={24} /></button>
+        <div className="w-8"></div>
       </div>
 
       <div className="p-4 md:p-8 flex flex-col flex-1 overflow-hidden max-w-5xl mx-auto w-full">
@@ -74,9 +83,18 @@ export function Employees({ onBack, onSelectEmployee }: EmployeesProps) {
 
         {/* Tabs */}
         <div className="flex gap-2 md:gap-4 mb-6 shrink-0 overflow-x-auto pb-2 scrollbar-hide">
-          <button className="px-6 py-2 rounded-full bg-[#0B5C36] text-white text-sm md:text-base font-medium whitespace-nowrap">Todos</button>
-          <button className="px-6 py-2 rounded-full bg-white text-gray-600 text-sm md:text-base font-medium border border-gray-200 hover:bg-gray-50 whitespace-nowrap transition-colors">Ativos</button>
-          <button className="px-6 py-2 rounded-full bg-white text-gray-600 text-sm md:text-base font-medium border border-gray-200 hover:bg-gray-50 whitespace-nowrap transition-colors">Inativos</button>
+          <button 
+            onClick={() => setFilterType('Todos')} 
+            className={cn("px-6 py-2 rounded-full text-sm md:text-base font-medium whitespace-nowrap transition-colors", filterType === 'Todos' ? "bg-[#0B5C36] text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50")}
+          >Todos</button>
+          <button 
+            onClick={() => setFilterType('Ativos')} 
+            className={cn("px-6 py-2 rounded-full text-sm md:text-base font-medium whitespace-nowrap transition-colors", filterType === 'Ativos' ? "bg-[#0B5C36] text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50")}
+          >Ativos</button>
+          <button 
+            onClick={() => setFilterType('Inativos')}
+            className={cn("px-6 py-2 rounded-full text-sm md:text-base font-medium whitespace-nowrap transition-colors", filterType === 'Inativos' ? "bg-[#0B5C36] text-white" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50")}
+          >Inativos</button>
         </div>
 
         {/* List */}
@@ -84,10 +102,10 @@ export function Employees({ onBack, onSelectEmployee }: EmployeesProps) {
           {filteredEmployees.map((emp) => (
             <button 
               key={emp.id} 
-              onClick={onSelectEmployee}
-              className="w-full bg-white p-4 md:p-5 rounded-2xl shadow-sm hover:shadow-md flex items-center justify-between border border-gray-100 transition-all hover:border-[#0B5C36]/30 group"
+              onClick={() => onSelectEmployee(emp.id)}
+              className="w-full bg-white p-4 md:p-5 rounded-2xl shadow-sm hover:shadow-md flex items-center justify-between border border-gray-100 transition-all hover:border-[#0B5C36]/30 group text-left"
             >
-              <div className="flex items-center gap-4 md:gap-6">
+              <div className="flex items-center gap-4 md:gap-6 flex-1 min-w-0">
                 <div className="w-14 h-14 md:w-16 md:h-16 flex items-center justify-center bg-gray-50 rounded-full border-2 border-gray-100 group-hover:border-green-200 transition-colors overflow-hidden shrink-0">
                   {emp.fotoUrl ? (
                     <img src={emp.fotoUrl} alt={emp.nome} className="w-full h-full object-cover" />
@@ -95,20 +113,20 @@ export function Employees({ onBack, onSelectEmployee }: EmployeesProps) {
                     <span className="text-2xl">👤</span>
                   )}
                 </div>
-                <div className="text-left">
+                <div className="flex-1 min-w-0 pr-2">
                   <h3 className="font-bold text-gray-800 md:text-lg truncate">{emp.nome}</h3>
                   <p className="text-sm text-gray-500 mb-0.5 truncate">{cargos[emp.cargoId as keyof typeof cargos] || 'S/ Cargo'}</p>
                   <p className="text-xs md:text-sm text-gray-400 font-medium">Matrícula: {emp.matricula}</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 md:gap-4 shrink-0">
                 <span className={cn(
                   "px-3 py-1 md:py-1.5 md:px-4 rounded-full text-xs md:text-sm font-semibold",
-                  "bg-green-100 text-green-700" // We don't have active/inactive status in DB yet, pretend active
+                  (emp.status || 'Ativo') === 'Ativo' ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                 )}>
-                  Ativo
+                  {emp.status || 'Ativo'}
                 </span>
-                <ChevronRight size={20} className="text-gray-400 group-hover:text-[#0B5C36] transition-colors shrink-0" />
+                <ChevronRight size={20} className="text-gray-400 group-hover:text-[#0B5C36] transition-colors shrink-0 hidden sm:block" />
               </div>
             </button>
           ))}

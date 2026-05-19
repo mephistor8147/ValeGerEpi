@@ -67,6 +67,10 @@ export function SiteManagement({ onBack }: SiteManagementProps) {
       return;
     }
 
+    if (!confirm('Tem certeza que deseja salvar esta obra?')) {
+      return;
+    }
+
     try {
       const siteData = {
         codigo: formData.codigo,

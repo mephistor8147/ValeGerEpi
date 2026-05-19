@@ -74,6 +74,21 @@
       },
       "required": ["funcionarioId", "codigoEpi", "quantidade", "ca", "dataEntrega", "createdAt"]
     },
+    "Epi": {
+      "title": "Equipamento de Proteção Individual",
+      "description": "EPI cadastrado no sistema",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string" },
+        "ca": { "type": "string" },
+        "categoria": { "type": "string" },
+        "quantidade": { "type": "number" },
+        "fotoUrl": { "type": "string" },
+        "obraId": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["nome", "ca", "categoria", "quantidade", "createdAt"]
+    },
     "Alerta": {
       "title": "Alerta",
       "description": "Alertas do sistema, como validade de CA, estoque baixo",
@@ -112,6 +127,10 @@
     "/alertas": {
       "schema": { "$ref": "Alerta" },
       "description": "Alertas recentes do sistema"
+    },
+    "/epis": {
+      "schema": { "$ref": "Epi" },
+      "description": "Catálogo e inventário de EPIs"
     }
   }
 }

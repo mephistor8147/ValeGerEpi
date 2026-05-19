@@ -64,6 +64,10 @@ export function RoleManagement({ onBack }: RoleManagementProps) {
       return;
     }
 
+    if (!confirm('Tem certeza que deseja salvar este cargo?')) {
+      return;
+    }
+
     try {
       const roleData = {
         codigo: formData.codigo,

@@ -11,6 +11,8 @@ import { Delivery } from './views/Delivery';
 import { Return } from './views/Return';
 import { Catalog } from './views/Catalog';
 import { Reports } from './views/Reports';
+import { ReportViewer } from './views/ReportViewer';
+import { Alerts } from './views/Alerts';
 import { Dashboard } from './views/Dashboard';
 import { Settings } from './views/Settings';
 import { EpiManagement } from './views/EpiManagement';
@@ -27,7 +29,9 @@ import { onAuthStateChanged } from 'firebase/auth';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('home');
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null);
   const [adminUser, setAdminUser] = useState<any>(null);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -56,13 +60,33 @@ export default function App() {
           const qByEmail = query(collection(db, 'admins'), where('email', '==', user.email));
           const emailSnapshot = await getDocs(qByEmail);
           if (!emailSnapshot.empty) {
-            const adminData = emailSnapshot.docs[0].data();
+            const adminDoc = emailSnapshot.docs[0];
+            const adminData = adminDoc.data();
             if (adminData.status === 'Ativo') {
-              setAdminUser({ id: emailSnapshot.docs[0].id, ...adminData });
+              const { doc, updateDoc } = await import('firebase/firestore');
+              await updateDoc(doc(db, 'admins', adminDoc.id), { authUid: user.uid });
+              setAdminUser({ id: adminDoc.id, ...adminData });
             } else {
               auth.signOut();
             }
           } else {
+            if (user.email === 'l2xbrasil@gmail.com') {
+               const adminData = {
+                  funcionarioId: 'seed',
+                  nomeFuncionario: user.displayName || 'Administrador L2X',
+                  email: user.email,
+                  nivel: 'master',
+                  status: 'Ativo',
+                  contato: '',
+                  fotoUrl: user.photoURL || '',
+                  authUid: user.uid,
+                  createdAt: Date.now()
+                };
+                const { addDoc } = await import('firebase/firestore');
+                const docRef = await addDoc(collection(db, 'admins'), adminData);
+                setAdminUser({ id: docRef.id, ...adminData });
+                return;
+            }
             auth.signOut();
           }
         }
@@ -93,9 +117,9 @@ export default function App() {
       case 'home':
         return <Home onNavigate={setCurrentView} />;
       case 'employees':
-        return <Employees onBack={() => setCurrentView('home')} onSelectEmployee={() => setCurrentView('employeeDetails')} />;
+        return <Employees onBack={() => setCurrentView('home')} onSelectEmployee={(id) => { setSelectedEmployeeId(id); setCurrentView('employeeDetails'); }} />;
       case 'employeeDetails':
-        return <EmployeeDetails onBack={() => setCurrentView('employees')} />;
+        return <EmployeeDetails employeeId={selectedEmployeeId!} onBack={() => setCurrentView('employees')} />;
       case 'delivery':
         return <Delivery onBack={() => setCurrentView('home')} />;
       case 'return':
@@ -103,9 +127,13 @@ export default function App() {
       case 'catalog':
         return <Catalog onBack={() => setCurrentView('home')} />;
       case 'reports':
-        return <Reports onBack={() => setCurrentView('home')} onNavigateDashboard={() => setCurrentView('dashboard')} />;
+        return <Reports onBack={() => setCurrentView('home')} onNavigateReport={(id) => { setSelectedReportId(id); setCurrentView('reportViewer'); }} />;
+      case 'reportViewer':
+        return <ReportViewer reportId={selectedReportId!} onBack={() => setCurrentView('reports')} />;
+      case 'alerts':
+        return <Alerts onBack={() => setCurrentView('home')} />;
       case 'dashboard':
-        return <Dashboard onBack={() => setCurrentView('reports')} />;
+        return <Dashboard onBack={() => setCurrentView('home')} />;
       case 'settings':
         return <Settings onBack={() => setCurrentView('home')} onNavigate={setCurrentView} />;
       case 'epiManagement':

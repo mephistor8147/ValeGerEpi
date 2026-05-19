@@ -1,39 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 
 interface CatalogProps {
   onBack: () => void;
 }
 
+interface EpiItem {
+  id: string;
+  nome: string;
+  ca: string;
+  categoria: string;
+  quantidade: number;
+  fotoUrl?: string;
+}
+
 export function Catalog({ onBack }: CatalogProps) {
   const [activeCategory, setActiveCategory] = useState('Todas as categorias');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [items, setItems] = useState<EpiItem[]>([]);
+
+  useEffect(() => {
+    const q = query(collection(db, 'epis'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      setItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as EpiItem)));
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'epis'));
+
+    return () => unsub();
+  }, []);
 
   const categories = [
     'Todas as categorias',
-    'Proteção da Cabeça',
-    'Proteção Ocular',
-    'Proteção Auditiva',
-    'Proteção das Mãos',
-    'Proteção dos Pés',
-    'Proteção do Corpo',
-    'Proteção Contra Quedas'
+    ...Array.from(new Set(items.map(item => item.categoria).filter(Boolean))).sort()
   ];
 
-  const items = [
-    { name: 'Capacete', ca: '12345', stock: 32 },
-    { name: 'Óculos de Segurança', ca: '54321', stock: 18 },
-    { name: 'Protetor Auricular', ca: '11223', stock: 27 },
-    { name: 'Luva de Segurança', ca: '33445', stock: 45 },
-    { name: 'Bota de Segurança', ca: '66778', stock: 15 },
-  ];
+  const filteredItems = items.filter(item => {
+    const searchLower = searchQuery.toLowerCase();
+    const matchesSearch = item.nome?.toLowerCase().includes(searchLower) || item.ca?.includes(searchLower);
+    const matchesCategory = activeCategory === 'Todas as categorias' || item.categoria === activeCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="flex flex-col flex-1 bg-gray-50 h-full">
       {/* Header */}
       <div className="bg-[#0B5C36] px-4 pt-12 md:pt-8 pb-6 flex items-center md:justify-between text-white shrink-0 shadow-md">
         <button onClick={onBack} className="p-2 -ml-2 md:hidden"><ChevronLeft size={24} /></button>
-        <div className="hidden md:block p-2"><ChevronLeft size={24} className="opacity-0" /></div>
+        <div className="hidden md:block p-2 cursor-pointer" onClick={onBack}><ChevronLeft size={24} className="hover:text-gray-200 transition-colors" /></div>
         <h1 className="text-xl md:text-2xl font-bold flex-1 text-center md:flex-none">Catálogo de EPIs</h1>
         <div className="w-8 md:hidden"></div>
       </div>
@@ -45,6 +60,8 @@ export function Catalog({ onBack }: CatalogProps) {
             <Search size={22} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input 
               type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar EPI..." 
               className="w-full bg-gray-50 border border-gray-200 rounded-full py-3.5 pl-12 pr-4 text-base focus:ring-2 focus:ring-[#0B5C36] outline-none transition-colors focus:bg-white"
             />
@@ -74,20 +91,33 @@ export function Catalog({ onBack }: CatalogProps) {
           <div className="flex-1 bg-white overflow-y-auto p-4 md:p-8 pb-safe pb-24">
             <h2 className="text-xl font-bold text-gray-800 mb-6 hidden md:block">{activeCategory}</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {items.map((item, idx) => (
-                <div key={idx} className="flex flex-row md:flex-col gap-4 items-center md:items-start border border-gray-100 md:border-gray-200 bg-white p-4 rounded-xl md:rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <div className="w-16 h-16 md:w-full md:h-48 rounded-lg md:rounded-xl bg-gray-50 flex items-center justify-center p-2 shrink-0 border border-gray-100">
-                    <span className="text-3xl md:text-6xl">🧰</span>
+              {filteredItems.map((item, idx) => (
+                <div key={item.id || idx} className="flex flex-row md:flex-col gap-4 items-center md:items-start border border-gray-100 md:border-gray-200 bg-white p-4 rounded-xl md:rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                  <div className="w-16 h-16 md:w-full md:h-48 rounded-lg md:rounded-xl bg-gray-50 flex items-center justify-center p-2 shrink-0 border border-gray-100 overflow-hidden">
+                    {item.fotoUrl ? (
+                      <img src={item.fotoUrl} alt={item.nome} className="w-full h-full object-cover rounded-lg" />
+                    ) : (
+                      <span className="text-3xl md:text-6xl">🧰</span>
+                    )}
                   </div>
                   <div className="flex-1 w-full flex flex-col justify-center">
-                    <h4 className="font-bold text-gray-800 text-base md:text-lg mb-1">{item.name}</h4>
-                    <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-1 mt-1 md:mt-2">
-                      <p className="text-sm text-gray-500 font-medium">CA: {item.ca}</p>
-                      <p className={cn("text-xs md:text-sm font-bold px-2 py-1 rounded-md max-w-fit", item.stock > 20 ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700")}>Estoque: {item.stock}</p>
+                    <h4 className="font-bold text-gray-800 text-base md:text-lg mb-1 line-clamp-2 md:line-clamp-1" title={item.nome}>{item.nome}</h4>
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-start md:items-center gap-1 mt-1 md:mt-2">
+                      <p className="text-sm text-gray-500 font-medium">CA: {item.ca || 'N/A'}</p>
+                      <p className={cn("text-xs md:text-sm font-bold px-2 py-1 rounded-md max-w-fit md:-ml-1", item.quantidade > 0 ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700")}>
+                        {item.quantidade > 0 ? `Estoque: ${item.quantidade}` : 'Sem Estoque'}
+                      </p>
                     </div>
                   </div>
                 </div>
               ))}
+              
+              {filteredItems.length === 0 && (
+                <div className="col-span-full py-12 text-center flex flex-col items-center justify-center text-gray-400">
+                    <span className="text-4xl mb-4">📭</span>
+                    <p className="text-sm md:text-base">Nenhum EPI encontrado nesta categoria.</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -95,3 +125,4 @@ export function Catalog({ onBack }: CatalogProps) {
     </div>
   );
 }
+

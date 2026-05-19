@@ -4,17 +4,17 @@ import { cn } from '../lib/utils';
 
 interface ReportsProps {
   onBack: () => void;
-  onNavigateDashboard: () => void;
+  onNavigateReport: (reportId: string) => void;
 }
 
-export function Reports({ onBack, onNavigateDashboard }: ReportsProps) {
+export function Reports({ onBack, onNavigateReport }: ReportsProps) {
   const reports = [
-    { id: '1', title: 'Relatório de Entregas', desc: 'Veja todas as entregas realizadas', icon: PackageCheck, color: 'text-green-600', bg: 'bg-green-100', route: 'dashboard' },
-    { id: '2', title: 'EPIs a Vencer', desc: 'EPIs que vencem em breve', icon: Clock, color: 'text-amber-500', bg: 'bg-amber-100' },
-    { id: '3', title: 'EPIs Vencidos', desc: 'EPIs com validade expirada', icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-100' },
-    { id: '4', title: 'Relatório de Devoluções', desc: 'Veja todas as devoluções', icon: PackageMinus, color: 'text-blue-500', bg: 'bg-blue-100' },
-    { id: '5', title: 'Relatório por Funcionário', desc: 'Histórico de EPIs por funcionário', icon: Users, color: 'text-purple-500', bg: 'bg-purple-100' },
-    { id: '6', title: 'Relatório de Estoque', desc: 'Estoque atual de EPIs', icon: FileBarChart, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+    { id: 'entregas', title: 'Relatório de Entregas', desc: 'Veja todas as entregas realizadas', icon: PackageCheck, color: 'text-green-600', bg: 'bg-green-100' },
+    { id: 'vencer', title: 'EPIs a Vencer', desc: 'EPIs que vencem em breve', icon: Clock, color: 'text-amber-500', bg: 'bg-amber-100' },
+    { id: 'vencidos', title: 'EPIs Vencidos', desc: 'EPIs com validade expirada', icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-100' },
+    { id: 'devolucoes', title: 'Relatório de Devoluções', desc: 'Veja todas as devoluções', icon: PackageMinus, color: 'text-blue-500', bg: 'bg-blue-100' },
+    { id: 'funcionario', title: 'Relatório por Funcionário', desc: 'Histórico de EPIs por funcionário', icon: Users, color: 'text-purple-500', bg: 'bg-purple-100' },
+    { id: 'estoque', title: 'Relatório de Estoque', desc: 'Estoque atual de EPIs', icon: FileBarChart, color: 'text-emerald-600', bg: 'bg-emerald-100' },
   ];
 
   return (
@@ -22,8 +22,8 @@ export function Reports({ onBack, onNavigateDashboard }: ReportsProps) {
       {/* Header */}
       <div className="bg-[#0B5C36] px-4 pt-12 md:pt-8 pb-6 flex items-center md:justify-between text-white shrink-0 shadow-md">
         <button onClick={onBack} className="p-2 -ml-2 md:hidden"><ChevronLeft size={24} /></button>
-        <div className="hidden md:block p-2"><ChevronLeft size={24} className="opacity-0" /></div>
-        <h1 className="text-xl md:text-2xl font-bold flex-1 text-center md:flex-none">Relatórios</h1>
+        <div className="hidden md:block p-2 cursor-pointer" onClick={onBack}><ChevronLeft size={24} /></div>
+        <h1 className="text-xl md:text-2xl font-bold flex-1 text-center md:flex-none md:ml-4">Relatórios</h1>
         <div className="w-8 md:hidden"></div>
       </div>
 
@@ -33,7 +33,7 @@ export function Reports({ onBack, onNavigateDashboard }: ReportsProps) {
             {reports.map((report) => (
               <button 
                 key={report.id}
-                onClick={report.route ? onNavigateDashboard : undefined}
+                onClick={() => onNavigateReport(report.id)}
                 className="w-full bg-white p-5 md:p-6 rounded-2xl md:rounded-3xl shadow-sm hover:shadow-md border border-gray-100 flex flex-col items-start gap-4 text-left transition-all hover:border-[#0B5C36]/20 group"
               >
                 <div className="flex items-center justify-between w-full">
@@ -54,3 +54,4 @@ export function Reports({ onBack, onNavigateDashboard }: ReportsProps) {
     </div>
   );
 }
+

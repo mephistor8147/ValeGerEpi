@@ -11,6 +11,7 @@ import {
   Settings, 
   GraduationCap, 
   BellRing,
+  Bell,
   ChevronRight,
   Clock
 } from 'lucide-react';
@@ -129,7 +130,7 @@ export function Home({ onNavigate }: HomeProps) {
             <ActionButton icon={Users} label="Funcionários" onClick={() => onNavigate('employees')} />
             <ActionButton icon={Package} label="EPIs" onClick={() => onNavigate('catalog')} />
             <ActionButton icon={LayoutList} label="Relatórios" onClick={() => onNavigate('reports')} />
-            <ActionButton icon={BellRing} label="Alertas" onClick={() => {}} />
+            <ActionButton icon={BellRing} label="Alertas" onClick={() => onNavigate('alerts')} />
             <ActionButton icon={GraduationCap} label="Treinamentos" onClick={() => {}} />
             <ActionButton icon={Settings} label="Configurações" onClick={() => onNavigate('settings')} />
           </div>
@@ -139,7 +140,7 @@ export function Home({ onNavigate }: HomeProps) {
         <div className="px-5 md:px-6 mt-8 md:mt-12 mb-8">
           <div className="flex justify-between items-end mb-4">
             <h2 className="text-lg md:text-xl font-bold text-gray-800">Alertas recentes</h2>
-            <button className="text-sm md:text-base font-medium text-[#149B55] hover:text-[#0B5C36]">Ver todos</button>
+            <button onClick={() => onNavigate('alerts')} className="text-sm md:text-base font-medium text-[#149B55] hover:text-[#0B5C36]">Ver todos</button>
           </div>
           
           <div className="bg-white rounded-2xl md:rounded-3xl shadow-sm overflow-hidden border border-gray-100">
@@ -150,7 +151,7 @@ export function Home({ onNavigate }: HomeProps) {
               </div>
             ) : (
               alertas.map(alerta => (
-                <div key={alerta.id} className="p-5 md:p-6 flex items-center justify-between border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors last:border-b-0">
+                <div key={alerta.id} onClick={() => onNavigate('alerts')} className="p-5 md:p-6 flex items-center justify-between border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors last:border-b-0">
                   <div className="flex items-center gap-4">
                     {alerta.tipo === 'error' ? (
                       <AlertTriangle size={28} className="text-red-500" />

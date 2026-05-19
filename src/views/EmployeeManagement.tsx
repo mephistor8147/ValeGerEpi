@@ -84,6 +84,10 @@ export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
       return;
     }
 
+    if (!confirm('Tem certeza que deseja salvar este funcionário?')) {
+      return;
+    }
+
     try {
       const empData = {
         matricula: formData.matricula,
