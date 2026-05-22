@@ -7,9 +7,10 @@ import { db } from '../lib/firebase';
 interface EmployeeDetailsProps {
   employeeId: string;
   onBack: () => void;
+  onViewBinder?: () => void;
 }
 
-export function EmployeeDetails({ employeeId, onBack }: EmployeeDetailsProps) {
+export function EmployeeDetails({ employeeId, onBack, onViewBinder }: EmployeeDetailsProps) {
   const [activeTab, setActiveTab] = useState('EPIs');
   const [employee, setEmployee] = useState<any>(null);
   const [cargo, setCargo] = useState<any>(null);
@@ -63,7 +64,8 @@ export function EmployeeDetails({ employeeId, onBack }: EmployeeDetailsProps) {
               ca: entrega.ca || 'N/A',
               delivery: entrega.dataEntrega || 'Desconhecida',
               valid: 'Consultar validade',
-              status: 'valid'
+              status: 'valid',
+              adminResponsavelNome: entrega.adminResponsavelNome || 'N/A'
             }));
           
           setAssignedEpis(episList);
@@ -137,12 +139,19 @@ export function EmployeeDetails({ employeeId, onBack }: EmployeeDetailsProps) {
               </div>
             </div>
           </div>
-          <span className={cn(
-            "px-4 py-1.5 rounded-full text-sm font-semibold self-start sm:self-center border",
-            (employee.status || 'Ativo') === 'Ativo' ? "bg-green-50 text-green-700 border-green-100" : "bg-red-50 text-red-700 border-red-100"
-          )}>
-            Status: {employee.status || 'Ativo'}
-          </span>
+          <div className="flex flex-col sm:items-end gap-3 self-start sm:self-center">
+            <span className={cn(
+              "px-4 py-1.5 rounded-full text-sm font-semibold border inline-block text-center",
+              (employee.status || 'Ativo') === 'Ativo' ? "bg-green-50 text-green-700 border-green-100" : "bg-red-50 text-red-700 border-red-100"
+            )}>
+              Status: {employee.status || 'Ativo'}
+            </span>
+            {onViewBinder && (
+              <button onClick={onViewBinder} className="text-[#0B5C36] bg-green-50 hover:bg-green-100 px-4 py-2 font-semibold text-sm rounded-xl border border-green-200 transition-colors whitespace-nowrap">
+                Visualizar Fichário
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Tabs */}
@@ -181,6 +190,7 @@ export function EmployeeDetails({ employeeId, onBack }: EmployeeDetailsProps) {
                       <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-gray-800 text-base md:text-lg mb-1" style={{ wordBreak: 'break-word' }}>{epi.name}</h4>
                         <p className="text-sm text-gray-500 font-medium">CA: {epi.ca}</p>
+                        <p className="text-xs text-gray-400 mt-1">Por: {epi.adminResponsavelNome}</p>
                       </div>
                     </div>
                     <div className="flex sm:flex-col gap-6 sm:gap-2 justify-between items-start sm:items-end mt-2 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-0 border-gray-50">
@@ -272,6 +282,7 @@ export function EmployeeDetails({ employeeId, onBack }: EmployeeDetailsProps) {
                                         <p className="text-sm text-gray-700 font-medium">
                                             {new Date(entrega.dataEntrega).toLocaleDateString('pt-BR')}
                                         </p>
+                                        <p className="text-xs text-gray-600 mt-1">Por: {entrega.adminResponsavelNome || 'N/A'}</p>
                                         {entrega.observacoes && (
                                             <p className="text-xs text-gray-500 mt-1 italic">Obs: {entrega.observacoes}</p>
                                         )}
@@ -282,6 +293,7 @@ export function EmployeeDetails({ employeeId, onBack }: EmployeeDetailsProps) {
                                             <p className="text-sm text-gray-700 font-medium">
                                                 {new Date(entrega.dataDevolucao).toLocaleDateString('pt-BR')}
                                             </p>
+                                            <p className="text-xs text-gray-600 mt-1">Por: {entrega.adminResponsavelNomeDevolucao || 'N/A'}</p>
                                             <p className="text-xs text-gray-500 mt-1">Motivo: {entrega.motivoDevolucao}</p>
                                         </div>
                                     )}

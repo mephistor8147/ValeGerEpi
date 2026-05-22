@@ -6,9 +6,10 @@ import { collection, query, where, getDocs, updateDoc, doc, getDoc } from 'fireb
 
 interface ReturnProps {
   onBack: () => void;
+  adminUser?: any;
 }
 
-export function Return({ onBack }: ReturnProps) {
+export function Return({ onBack, adminUser }: ReturnProps) {
   const [step, setStep] = useState(1);
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +92,9 @@ export function Return({ onBack }: ReturnProps) {
             dataDevolucao: returnDate,
             motivoDevolucao: reason,
             observacoesDevolucao: notes,
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
+            adminResponsavelIdDevolucao: adminUser?.id || null,
+            adminResponsavelNomeDevolucao: adminUser?.nomeFuncionario || 'Desconhecido',
         });
         
         // Optionally, if the reason is not "Danificado", increment stock back?

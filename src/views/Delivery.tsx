@@ -6,9 +6,10 @@ import { collection, query, getDocs, addDoc, doc, getDoc, updateDoc } from 'fire
 
 interface DeliveryProps {
   onBack: () => void;
+  adminUser?: any;
 }
 
-export function Delivery({ onBack }: DeliveryProps) {
+export function Delivery({ onBack, adminUser }: DeliveryProps) {
   const [step, setStep] = useState(1);
   const [employees, setEmployees] = useState<any[]>([]);
   const [epis, setEpis] = useState<any[]>([]);
@@ -83,7 +84,9 @@ export function Delivery({ onBack }: DeliveryProps) {
             ca: epi.ca || "N/A",
             dataEntrega: deliveryDate,
             observacoes: notes,
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            adminResponsavelId: adminUser?.id || null,
+            adminResponsavelNome: adminUser?.nomeFuncionario || 'Desconhecido',
           });
           
           // Optionally, decrement amount

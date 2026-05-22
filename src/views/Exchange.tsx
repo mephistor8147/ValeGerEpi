@@ -6,9 +6,10 @@ import { collection, query, where, getDocs, updateDoc, doc, getDoc, addDoc } fro
 
 interface ExchangeProps {
   onBack: () => void;
+  adminUser?: any;
 }
 
-export function Exchange({ onBack }: ExchangeProps) {
+export function Exchange({ onBack, adminUser }: ExchangeProps) {
   const [step, setStep] = useState(1);
   const [employees, setEmployees] = useState<any[]>([]);
   const [epis, setEpis] = useState<any[]>([]);
@@ -108,7 +109,9 @@ export function Exchange({ onBack }: ExchangeProps) {
             dataDevolucao: exchangeDate,
             motivoDevolucao: reason,
             observacoesDevolucao: notes,
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
+            adminResponsavelIdDevolucao: adminUser?.id || null,
+            adminResponsavelNomeDevolucao: adminUser?.nomeFuncionario || 'Desconhecido',
         });
       }
       
@@ -123,7 +126,9 @@ export function Exchange({ onBack }: ExchangeProps) {
             ca: epi.ca || "N/A",
             dataEntrega: exchangeDate,
             observacoes: `Troca: ${notes}`,
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            adminResponsavelId: adminUser?.id || null,
+            adminResponsavelNome: adminUser?.nomeFuncionario || 'Desconhecido',
           });
           
           const epiRef = doc(db, 'epis', epi.id);

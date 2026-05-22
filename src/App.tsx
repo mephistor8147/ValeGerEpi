@@ -21,6 +21,7 @@ import { EmployeeManagement } from './views/EmployeeManagement';
 import { SiteManagement } from './views/SiteManagement';
 import { RoleManagement } from './views/RoleManagement';
 import { BinderCreation } from './views/BinderCreation';
+import { BinderViewer } from './views/BinderViewer';
 import { AdminManagement } from './views/AdminManagement';
 import { Login } from './views/Login';
 import { Home as HomeIcon, PackageCheck, Package, LayoutList, LayoutGrid, LogOut } from 'lucide-react';
@@ -120,13 +121,15 @@ export default function App() {
       case 'employees':
         return <Employees onBack={() => setCurrentView('home')} onSelectEmployee={(id) => { setSelectedEmployeeId(id); setCurrentView('employeeDetails'); }} />;
       case 'employeeDetails':
-        return <EmployeeDetails employeeId={selectedEmployeeId!} onBack={() => setCurrentView('employees')} />;
+        return <EmployeeDetails employeeId={selectedEmployeeId!} onBack={() => setCurrentView('employees')} onViewBinder={() => setCurrentView('binderViewer')} />;
+      case 'binderViewer':
+        return <BinderViewer employeeId={selectedEmployeeId!} onBack={() => setCurrentView('employeeDetails')} />;
       case 'delivery':
-        return <Delivery onBack={() => setCurrentView('home')} />;
+        return <Delivery onBack={() => setCurrentView('home')} adminUser={adminUser} />;
       case 'return':
-        return <Return onBack={() => setCurrentView('home')} />;
+        return <Return onBack={() => setCurrentView('home')} adminUser={adminUser} />;
       case 'exchange':
-        return <Exchange onBack={() => setCurrentView('home')} />;
+        return <Exchange onBack={() => setCurrentView('home')} adminUser={adminUser} />;
       case 'catalog':
         return <Catalog onBack={() => setCurrentView('home')} />;
       case 'reports':
