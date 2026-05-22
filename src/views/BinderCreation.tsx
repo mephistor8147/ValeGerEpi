@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Search, FileText, Printer, CheckCircle2, Plus, Edit2, Trash2, Save, X, Eye } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, query, orderBy, where } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 
 interface BinderCreationProps {
   onBack: () => void;
@@ -12,9 +14,9 @@ interface Employee {
   nome: string;
   cargo: string;
   obra: string;
-  camisa: string;
-  calca: string;
-  bota: string;
+  camisa?: string;
+  calca?: string;
+  bota?: string;
 }
 
 interface BinderEntry {
@@ -31,39 +33,78 @@ export function BinderCreation({ onBack }: BinderCreationProps) {
   const [viewMode, setViewMode] = useState<'select' | 'manage' | 'preview'>('select');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
-  // Mock dados dos funcionários (deveria vir de um estado global/contexto ou API)
-  const employees: Employee[] = [
-    {
-      id: '1',
-      matricula: '0001',
-      nome: 'Carlos Alberto',
-      cargo: 'Pedreiro',
-      obra: 'Obra Central',
-      camisa: 'M',
-      calca: '40',
-      bota: '40',
-    },
-    {
-      id: '2',
-      matricula: '0002',
-      nome: 'João Silva',
-      cargo: 'Eletricista',
-      obra: 'Torre Sul',
-      camisa: 'G',
-      calca: '42',
-      bota: '41',
-    }
-  ];
-
-  // Mock entradas do fichário
-  const [binderEntries, setBinderEntries] = useState<BinderEntry[]>([
-    { id: '1', employeeId: '1', codigo: '05', uni: '1', ca: '12345', dataEntrega: '01/10/2023', dataDevolucao: '' },
-    { id: '2', employeeId: '1', codigo: '03', uni: '1', ca: '54321', dataEntrega: '01/10/2023', dataDevolucao: '' }
-  ]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [cargos, setCargos] = useState<{id: string, titulo: string}[]>([]);
+  const [obras, setObras] = useState<{id: string, nome: string}[]>([]);
+  const [binderEntries, setBinderEntries] = useState<BinderEntry[]>([]);
 
   const [showForm, setShowForm] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<BinderEntry>>({});
+
+  useEffect(() => {
+    const unsubCargos = onSnapshot(collection(db, 'cargos'), (snapshot) => {
+      setCargos(snapshot.docs.map(d => ({ id: d.id, titulo: d.data().titulo })));
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'cargos'));
+
+    const unsubObras = onSnapshot(collection(db, 'obras'), (snapshot) => {
+      setObras(snapshot.docs.map(d => ({ id: d.id, nome: d.data().nome })));
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'obras'));
+
+    return () => {
+      unsubCargos();
+      unsubObras();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (cargos.length === 0 && obras.length === 0) return;
+    
+    const unsubEmp = onSnapshot(collection(db, 'funcionarios'), (snapshot) => {
+      const emps = snapshot.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          matricula: data.matricula || '-',
+          nome: data.nome || '-',
+          cargo: cargos.find(c => c.id === data.cargoId)?.titulo || 'N/A',
+          obra: obras.find(o => o.id === data.obraId)?.nome || 'N/A',
+          camisa: data.camisa || '-',
+          calca: data.calca || '-',
+          bota: data.bota || '-',
+        };
+      });
+      setEmployees(emps);
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'funcionarios'));
+
+    return () => unsubEmp();
+  }, [cargos, obras]);
+
+  useEffect(() => {
+    if (!selectedEmployee) {
+      setBinderEntries([]);
+      return;
+    }
+
+    const q = query(collection(db, 'entregas'), where('funcionarioId', '==', selectedEmployee.id), orderBy('createdAt', 'desc'));
+    const unsubEnt = onSnapshot(q, (snapshot) => {
+      const entries = snapshot.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          employeeId: data.funcionarioId,
+          codigo: data.codigoEpi,
+          uni: String(data.quantidade || 1),
+          ca: data.ca || '',
+          dataEntrega: data.dataEntrega || '',
+          dataDevolucao: data.dataDevolucao || '',
+        } as BinderEntry;
+      });
+      setBinderEntries(entries);
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'entregas'));
+    
+    return () => unsubEnt();
+  }, [selectedEmployee]);
 
   const handleSelectEmployee = (emp: Employee) => {
     setSelectedEmployee(emp);
@@ -91,27 +132,45 @@ export function BinderCreation({ onBack }: BinderCreationProps) {
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Tem certeza que deseja remover este EPI do fichário?')) {
-      setBinderEntries(binderEntries.filter(e => e.id !== id));
+      try {
+        await deleteDoc(doc(db, 'entregas', id));
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, 'entregas');
+      }
     }
   };
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.codigo) {
-      alert('Preencha os campos obrigatórios.');
+      console.warn('Preencha os campos obrigatórios.');
       return;
     }
-    if (!confirm('Tem certeza que deseja salvar esta entrada no fichário?')) {
-      return;
+    
+    try {
+      if (editingEntryId) {
+        await updateDoc(doc(db, 'entregas', editingEntryId), {
+          codigoEpi: formData.codigo,
+          quantidade: formData.uni,
+          ca: formData.ca,
+          dataEntrega: formData.dataEntrega,
+          dataDevolucao: formData.dataDevolucao
+        });
+      } else {
+        await addDoc(collection(db, 'entregas'), {
+          funcionarioId: selectedEmployee?.id,
+          codigoEpi: formData.codigo,
+          quantidade: formData.uni || '1',
+          ca: formData.ca || '',
+          dataEntrega: formData.dataEntrega || '',
+          dataDevolucao: formData.dataDevolucao || '',
+          createdAt: Date.now()
+        });
+      }
+      setShowForm(false);
+    } catch (err) {
+      handleFirestoreError(err, editingEntryId ? OperationType.UPDATE : OperationType.CREATE, 'entregas');
     }
-    if (editingEntryId) {
-      setBinderEntries(binderEntries.map(e => e.id === editingEntryId ? { ...e, ...formData } as BinderEntry : e));
-    } else {
-      const newId = Math.random().toString(36).substr(2, 9);
-      setBinderEntries([...binderEntries, { ...formData, id: newId } as BinderEntry]);
-    }
-    setShowForm(false);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

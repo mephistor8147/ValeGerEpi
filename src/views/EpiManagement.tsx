@@ -28,6 +28,8 @@ export function EpiManagement({ onBack }: EpiManagementProps) {
   const [obras, setObras] = useState<{id: string, nome: string}[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<EpiItem>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -88,13 +90,12 @@ export function EpiManagement({ onBack }: EpiManagementProps) {
 
   const handleSave = async () => {
     if (!formData.nome || !formData.categoria) {
-      alert('Preencha os campos obrigatórios (Nome, Categoria).');
+      setSubmitError('Preencha os campos obrigatórios (Nome, Categoria).');
       return;
     }
 
-    if (!confirm('Tem certeza que deseja salvar este EPI?')) {
-      return;
-    }
+    setIsSubmitting(true);
+    setSubmitError('');
 
     try {
       const epiData = {
@@ -120,6 +121,8 @@ export function EpiManagement({ onBack }: EpiManagementProps) {
       setViewMode('list');
     } catch (error) {
       handleFirestoreError(error, editingId ? OperationType.UPDATE : OperationType.CREATE, 'epis');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -128,7 +131,33 @@ export function EpiManagement({ onBack }: EpiManagementProps) {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData({ ...formData, fotoUrl: reader.result as string });
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 300;
+          const MAX_HEIGHT = 300;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setFormData({ ...formData, fotoUrl: dataUrl });
+        };
+        img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
     }
@@ -280,9 +309,24 @@ export function EpiManagement({ onBack }: EpiManagementProps) {
                 </div>
               </div>
 
-              <button onClick={handleSave} className="w-full bg-[#0B5C36] text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 shadow-md hover:bg-[#094d2d] transition-colors mt-4">
-                <Save size={20} />
-                Salvar EPI
+              {submitError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mt-4">
+                      {submitError}
+                  </div>
+              )}
+
+              <button disabled={isSubmitting} onClick={handleSave} className="w-full bg-[#0B5C36] text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 shadow-md hover:bg-[#094d2d] transition-colors mt-4 disabled:opacity-50">
+                {isSubmitting ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save size={20} />
+                    Salvar EPI
+                  </>
+                )}
               </button>
             </div>
           </div>

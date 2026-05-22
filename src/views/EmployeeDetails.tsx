@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Edit2 } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -27,7 +27,7 @@ export function EmployeeDetails({ employeeId, onBack }: EmployeeDetailsProps) {
         const empSnap = await getDoc(empRef);
         
         if (empSnap.exists()) {
-          const empData = { id: empSnap.id, ...empSnap.data() };
+          const empData = { id: empSnap.id, ...empSnap.data() } as any;
           setEmployee(empData);
           
           // Fetch cargo
@@ -114,7 +114,7 @@ export function EmployeeDetails({ employeeId, onBack }: EmployeeDetailsProps) {
       <div className="bg-[#0B5C36] px-4 pt-12 md:pt-8 pb-6 flex items-center justify-between text-white shrink-0 shadow-md">
         <button onClick={onBack} className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
         <h1 className="text-xl md:text-2xl font-bold">Detalhes do Funcionário</h1>
-        <button className="p-2 -mr-2 hover:bg-white/10 rounded-full transition-colors"><Edit2 size={20} /></button>
+        <div className="w-8 -mr-2"></div>
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden max-w-5xl mx-auto w-full border-x border-gray-100 bg-white">
@@ -179,7 +179,7 @@ export function EmployeeDetails({ employeeId, onBack }: EmployeeDetailsProps) {
                          <span className="text-3xl md:text-4xl">🧰</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-gray-800 text-base md:text-lg truncate mb-1">{epi.name}</h4>
+                        <h4 className="font-bold text-gray-800 text-base md:text-lg mb-1" style={{ wordBreak: 'break-word' }}>{epi.name}</h4>
                         <p className="text-sm text-gray-500 font-medium">CA: {epi.ca}</p>
                       </div>
                     </div>

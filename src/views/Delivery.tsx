@@ -66,10 +66,7 @@ export function Delivery({ onBack }: DeliveryProps) {
   
   const handleSubmit = async () => {
     if (!selectedEmployeeId || selectedEpis.length === 0) {
-      alert('Selecione um funcionário e pelo menos um EPI.');
-      return;
-    }
-    if (!confirm('Tem certeza que deseja confirmar a entrega?')) {
+      setSubmitError('Selecione um funcionário e pelo menos um EPI.');
       return;
     }
     setIsSubmitting(true);
@@ -121,7 +118,7 @@ export function Delivery({ onBack }: DeliveryProps) {
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(epi);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {} as Record<string, (typeof epis)[0][]>);
 
   const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
 
@@ -248,7 +245,7 @@ export function Delivery({ onBack }: DeliveryProps) {
                    </div>
 
                    <div className="space-y-8">
-                       {Object.entries(episByCategory).sort().map(([category, items]) => (
+                       {(Object.entries(episByCategory) as [string, any[]][]).sort().map(([category, items]) => (
                            <div key={category}>
                                <h3 className="text-lg font-bold text-[#0B5C36] border-b border-gray-200 pb-2 mb-4">{category}</h3>
                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

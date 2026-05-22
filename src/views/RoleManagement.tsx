@@ -21,6 +21,8 @@ export function RoleManagement({ onBack }: RoleManagementProps) {
   const [roles, setRoles] = useState<RoleItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<RoleItem>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'cargos'), (snapshot) => {
@@ -49,24 +51,21 @@ export function RoleManagement({ onBack }: RoleManagementProps) {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este cargo?')) {
-      try {
-        await deleteDoc(doc(db, 'cargos', id));
-      } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, 'cargos');
-      }
+    try {
+      await deleteDoc(doc(db, 'cargos', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, 'cargos');
     }
   };
 
   const handleSave = async () => {
     if (!formData.codigo || !formData.titulo) {
-      alert('Preencha os campos obrigatórios (Código, Título).');
+      setSubmitError('Preencha os campos obrigatórios (Código, Título).');
       return;
     }
 
-    if (!confirm('Tem certeza que deseja salvar este cargo?')) {
-      return;
-    }
+    setIsSubmitting(true);
+    setSubmitError('');
 
     try {
       const roleData = {
@@ -86,6 +85,8 @@ export function RoleManagement({ onBack }: RoleManagementProps) {
       setViewMode('list');
     } catch (error) {
       handleFirestoreError(error, editingId ? OperationType.UPDATE : OperationType.CREATE, 'cargos');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -165,9 +166,24 @@ export function RoleManagement({ onBack }: RoleManagementProps) {
                 </div>
               </div>
 
-              <button onClick={handleSave} className="w-full bg-[#0B5C36] text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 shadow-md hover:bg-[#094d2d] transition-colors mt-4">
-                <Save size={20} />
-                Salvar Cargo
+              {submitError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mt-4">
+                      {submitError}
+                  </div>
+              )}
+
+              <button disabled={isSubmitting} onClick={handleSave} className="w-full bg-[#0B5C36] text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 shadow-md hover:bg-[#094d2d] transition-colors mt-4 disabled:opacity-50">
+                {isSubmitting ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save size={20} />
+                    Salvar Cargo
+                  </>
+                )}
               </button>
             </div>
           </div>

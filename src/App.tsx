@@ -9,6 +9,7 @@ import { Employees } from './views/Employees';
 import { EmployeeDetails } from './views/EmployeeDetails';
 import { Delivery } from './views/Delivery';
 import { Return } from './views/Return';
+import { Exchange } from './views/Exchange';
 import { Catalog } from './views/Catalog';
 import { Reports } from './views/Reports';
 import { ReportViewer } from './views/ReportViewer';
@@ -22,7 +23,7 @@ import { RoleManagement } from './views/RoleManagement';
 import { BinderCreation } from './views/BinderCreation';
 import { AdminManagement } from './views/AdminManagement';
 import { Login } from './views/Login';
-import { Home as HomeIcon, PackageCheck, Package, LayoutList, LayoutGrid } from 'lucide-react';
+import { Home as HomeIcon, PackageCheck, Package, LayoutList, LayoutGrid, LogOut } from 'lucide-react';
 import { cn } from './lib/utils';
 import { auth } from './lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -115,7 +116,7 @@ export default function App() {
   const renderView = () => {
     switch (currentView) {
       case 'home':
-        return <Home onNavigate={setCurrentView} />;
+        return <Home onNavigate={setCurrentView} adminUser={adminUser} />;
       case 'employees':
         return <Employees onBack={() => setCurrentView('home')} onSelectEmployee={(id) => { setSelectedEmployeeId(id); setCurrentView('employeeDetails'); }} />;
       case 'employeeDetails':
@@ -124,6 +125,8 @@ export default function App() {
         return <Delivery onBack={() => setCurrentView('home')} />;
       case 'return':
         return <Return onBack={() => setCurrentView('home')} />;
+      case 'exchange':
+        return <Exchange onBack={() => setCurrentView('home')} />;
       case 'catalog':
         return <Catalog onBack={() => setCurrentView('home')} />;
       case 'reports':
@@ -149,7 +152,7 @@ export default function App() {
       case 'adminManagement':
         return <AdminManagement onBack={() => setCurrentView('settings')} />;
       default:
-        return <Home onNavigate={setCurrentView} />;
+        return <Home onNavigate={setCurrentView} adminUser={adminUser} />;
     }
   };
 
@@ -190,6 +193,33 @@ export default function App() {
               );
             })}
           </nav>
+
+          <div className="p-4 border-t border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                {adminUser?.fotoUrl ? (
+                  <img src={adminUser.fotoUrl} alt="Admin" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-lg">👤</span>
+                )}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-bold text-gray-900 truncate">
+                  {adminUser?.nomeFuncionario || 'Administrador'}
+                </span>
+                <span className="text-xs text-gray-500 truncate">
+                  {adminUser?.email}
+                </span>
+              </div>
+            </div>
+            <button 
+              onClick={() => auth.signOut()}
+              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              title="Sair"
+            >
+              <LogOut size={20} />
+            </button>
+          </div>
         </aside>
       )}
 

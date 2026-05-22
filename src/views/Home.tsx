@@ -13,16 +13,19 @@ import {
   BellRing,
   Bell,
   ChevronRight,
-  Clock
+  Clock,
+  RefreshCw,
+  LogOut
 } from 'lucide-react';
 import { collection, onSnapshot } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 
 interface HomeProps {
   onNavigate: (view: string) => void;
+  adminUser?: any;
 }
 
-export function Home({ onNavigate }: HomeProps) {
+export function Home({ onNavigate, adminUser }: HomeProps) {
   const [stats, setStats] = useState({
     entregasEmDia: 0,
     aVencer: 0,
@@ -84,11 +87,29 @@ export function Home({ onNavigate }: HomeProps) {
           className="bg-[#0B5C36] md:rounded-3xl md:mt-8 md:mx-6 md:shadow-lg rounded-b-[40px] px-6 md:px-10 pt-12 md:pt-10 pb-10 flex flex-col relative overflow-hidden bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: 'linear-gradient(to right, rgba(11, 92, 54, 0.95) 0%, rgba(11, 92, 54, 0.4) 100%), url("https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=1200&q=80")' }}
         >
-          <div className="z-10">
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Olá, Carlos!</h1>
-            <p className="text-emerald-100 text-sm md:text-base">Bem-vindo ao sistema de<br className="md:hidden"/>gerenciamento de EPIs</p>
+          <div className="z-10 flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Olá, {adminUser?.nomeFuncionario?.split(' ')[0] || 'Carlos'}!</h1>
+              <p className="text-emerald-100 text-sm md:text-base">Bem-vindo ao sistema de<br className="md:hidden"/>gerenciamento de EPIs</p>
+            </div>
+            {/* Mobile Admin Profile & Logout */}
+            <div className="md:hidden flex items-center gap-3 bg-white/10 rounded-full p-1.5 backdrop-blur-md border border-white/20">
+              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+                {adminUser?.fotoUrl ? (
+                  <img src={adminUser.fotoUrl} alt="Admin" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-lg">👤</span>
+                )}
+              </div>
+              <button 
+                onClick={() => auth.signOut()}
+                className="p-2 text-white hover:text-red-300 hover:bg-white/10 rounded-full transition-colors mr-1"
+                title="Sair"
+              >
+                <LogOut size={20} />
+              </button>
+            </div>
           </div>
-
         </div>
 
         {/* Resumo Geral */}
@@ -127,6 +148,7 @@ export function Home({ onNavigate }: HomeProps) {
           <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-y-6 gap-x-2 md:gap-x-4">
             <ActionButton icon={PackageCheck} label="Entregar EPI" onClick={() => onNavigate('delivery')} />
             <ActionButton icon={PackageMinus} label="Devolver EPI" onClick={() => onNavigate('return')} />
+            <ActionButton icon={RefreshCw} label="Trocar EPI" onClick={() => onNavigate('exchange')} />
             <ActionButton icon={Users} label="Funcionários" onClick={() => onNavigate('employees')} />
             <ActionButton icon={Package} label="EPIs" onClick={() => onNavigate('catalog')} />
             <ActionButton icon={LayoutList} label="Relatórios" onClick={() => onNavigate('reports')} />

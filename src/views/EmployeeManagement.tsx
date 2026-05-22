@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, Plus, Search, Edit2, Trash2, Camera, Upload, Save } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
@@ -18,6 +18,7 @@ interface EmployeeItem {
   calca?: string;
   bota?: string;
   fotoUrl?: string;
+  status?: 'Ativo' | 'Inativo';
   createdAt: number;
 }
 
@@ -28,6 +29,50 @@ export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
   const [obras, setObras] = useState<{id: string, nome: string}[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<EmployeeItem>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 300;
+          const MAX_HEIGHT = 300;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setFormData({ ...formData, fotoUrl: dataUrl });
+          setSubmitError('');
+        };
+        img.src = reader.result as string;
+      };
+      reader.onerror = () => {
+        setSubmitError('Erro ao carregar a imagem.');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const tamanhosCamisa = ['P', 'M', 'G', 'GG', 'XG', 'XGG'];
   const tamanhosCalca = ['P', 'M', 'G', 'GG', 'XG', 'XGG'];
@@ -58,6 +103,7 @@ export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
       nome: '',
       obraId: '',
       cargoId: '',
+      status: 'Ativo',
     });
     setViewMode('form');
   };
@@ -69,27 +115,24 @@ export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir este funcionário?')) {
-      try {
-        await deleteDoc(doc(db, 'funcionarios', id));
-      } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, 'funcionarios');
-      }
+    try {
+      await deleteDoc(doc(db, 'funcionarios', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, 'funcionarios');
     }
   };
 
   const handleSave = async () => {
     if (!formData.matricula || !formData.nome || !formData.obraId || !formData.cargoId) {
-      alert('Preencha os campos obrigatórios (Matrícula, Nome, Obra, Cargo).');
+      setSubmitError('Preencha os campos obrigatórios (Matrícula, Nome, Obra, Cargo).');
       return;
     }
 
-    if (!confirm('Tem certeza que deseja salvar este funcionário?')) {
-      return;
-    }
+    setIsSubmitting(true);
+    setSubmitError('');
 
     try {
-      const empData = {
+      const empData: Partial<EmployeeItem> = {
         matricula: formData.matricula,
         nome: formData.nome,
         obraId: formData.obraId,
@@ -98,6 +141,7 @@ export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
         calca: formData.calca || '',
         bota: formData.bota || '',
         fotoUrl: formData.fotoUrl || '',
+        status: formData.status || 'Ativo',
       };
 
       if (editingId) {
@@ -110,7 +154,10 @@ export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
       }
       setViewMode('list');
     } catch (error) {
+      console.error("Error saving employee:", error);
       handleFirestoreError(error, editingId ? OperationType.UPDATE : OperationType.CREATE, 'funcionarios');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -157,7 +204,15 @@ export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-gray-800 truncate">{emp.nome}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-gray-800 truncate">{emp.nome}</h4>
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                        emp.status === 'Inativo' ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+                      )}>
+                        {emp.status || 'Ativo'}
+                      </span>
+                    </div>
                     <p className="text-xs text-gray-500">Matrícula: {emp.matricula} | {cargos.find(c => c.id === emp.cargoId)?.titulo || 'S/ Cargo'}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <p className="text-[10px] text-gray-400 font-semibold">{obras.find(o => o.id === emp.obraId)?.nome || 'S/ Obra'}</p>
@@ -186,17 +241,32 @@ export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
               
               {/* Image Upload Area */}
               <div className="flex flex-col items-center justify-center gap-3">
-                <div className="w-28 h-28 bg-gray-100 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 relative overflow-hidden group">
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-28 h-28 bg-gray-100 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 relative overflow-hidden group cursor-pointer"
+                >
                   {formData.fotoUrl ? (
                     <img src={formData.fotoUrl} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
                     <Camera size={32} />
                   )}
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Upload size={24} className="text-white" />
                   </div>
                 </div>
-                <p className="text-sm font-medium text-[#0B5C36] cursor-pointer hover:underline">Adicionar foto (Câmera/Envio)</p>
+                <p 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-sm font-medium text-[#0B5C36] cursor-pointer hover:underline"
+                >
+                  Adicionar foto (Câmera/Envio)
+                </p>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  className="hidden" 
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -224,6 +294,14 @@ export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
                     {obras.map(o => (
                       <option key={o.id} value={o.id}>{o.nome}</option>
                     ))}
+                  </select>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700">Status</label>
+                  <select name="status" value={formData.status || 'Ativo'} onChange={handleChange} className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-[#0B5C36] outline-none appearance-none cursor-pointer">
+                    <option value="Ativo">Ativo</option>
+                    <option value="Inativo">Inativo</option>
                   </select>
                 </div>
                 
@@ -257,9 +335,24 @@ export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
                 </div>
               </div>
 
-              <button onClick={handleSave} className="w-full bg-[#0B5C36] text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 shadow-md hover:bg-[#094d2d] transition-colors mt-4">
-                <Save size={20} />
-                Salvar Funcionário
+              {submitError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mt-4">
+                      {submitError}
+                  </div>
+              )}
+
+              <button disabled={isSubmitting} onClick={handleSave} className="w-full bg-[#0B5C36] text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 shadow-md hover:bg-[#094d2d] transition-colors mt-4 disabled:opacity-50">
+                {isSubmitting ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save size={20} />
+                    Salvar Funcionário
+                  </>
+                )}
               </button>
             </div>
           </div>

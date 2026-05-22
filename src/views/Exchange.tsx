@@ -2,65 +2,74 @@ import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Calendar, Search, Check, AlertCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { collection, query, where, getDocs, updateDoc, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc, getDoc, addDoc } from 'firebase/firestore';
 
-interface ReturnProps {
+interface ExchangeProps {
   onBack: () => void;
 }
 
-export function Return({ onBack }: ReturnProps) {
+export function Exchange({ onBack }: ExchangeProps) {
   const [step, setStep] = useState(1);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [epis, setEpis] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Step 1 State
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
-  const [returnDate, setReturnDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [reason, setReason] = useState<string>('');
+  const [exchangeDate, setExchangeDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [reason, setReason] = useState<string>('Troca');
   const [notes, setNotes] = useState<string>('');
   
-  // Step 2 State
+  // Step 2 State - Devolução
   const [employeeEntregas, setEmployeeEntregas] = useState<any[]>([]);
   const [selectedEntregas, setSelectedEntregas] = useState<string[]>([]);
-  const [loadingEpis, setLoadingEpis] = useState(false);
+  const [loadingEntregas, setLoadingEntregas] = useState(false);
+  
+  // Step 3 State - Nova Entrega
+  const [selectedEpis, setSelectedEpis] = useState<string[]>([]);
+  const [searchEpi, setSearchEpi] = useState('');
   
   // Submit state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
-    const fetchEmployees = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
         const empSnap = await getDocs(collection(db, 'funcionarios'));
         setEmployees(empSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        
+        const epiSnap = await getDocs(collection(db, 'epis'));
+        setEpis(epiSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (err) {
-        console.error("Error fetching employees:", err);
+        console.error("Error fetching data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchEmployees();
+    
+    fetchData();
   }, []);
 
   const handleNext = async () => {
     if (step === 1 && selectedEmployeeId) {
-        // Fetch active entregas for this employee
-        setLoadingEpis(true);
+        setLoadingEntregas(true);
         try {
             const entregasQ = query(collection(db, 'entregas'), where('funcionarioId', '==', selectedEmployeeId));
             const snap = await getDocs(entregasQ);
-            // Filter locally those without dataDevolucao to show only pending
             const activeEntregas = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter((d: any) => !d.dataDevolucao);
             setEmployeeEntregas(activeEntregas);
         } catch (err) {
             console.error("Error fetching entregas", err);
         } finally {
-            setLoadingEpis(false);
+            setLoadingEntregas(false);
         }
         setStep(2);
     } else if (step === 2 && selectedEntregas.length > 0) {
         setStep(3);
+    } else if (step === 3 && selectedEpis.length > 0) {
+        setStep(4);
     }
   };
   
@@ -75,42 +84,79 @@ export function Return({ onBack }: ReturnProps) {
         : [...prev, entregaId]
     );
   };
+
+  const toggleEpiSelection = (epiId: string) => {
+    setSelectedEpis(prev => 
+      prev.includes(epiId) 
+        ? prev.filter(id => id !== epiId)
+        : [...prev, epiId]
+    );
+  };
   
   const handleSubmit = async () => {
-    if (selectedEntregas.length === 0) {
-      setSubmitError('Selecione pelo menos um EPI para devolução.');
+    if (selectedEntregas.length === 0 || selectedEpis.length === 0) {
+      setSubmitError('Selecione os EPIs para devolução e para entrega.');
       return;
     }
     setIsSubmitting(true);
     setSubmitError('');
     try {
-      // For each selected entrega, update with return info
+      // 1. Processar Devolucao
       for (const entregaId of selectedEntregas) {
         const entregaRef = doc(db, 'entregas', entregaId);
         await updateDoc(entregaRef, {
-            dataDevolucao: returnDate,
+            dataDevolucao: exchangeDate,
             motivoDevolucao: reason,
             observacoesDevolucao: notes,
             updatedAt: Date.now()
         });
-        
-        // Optionally, if the reason is not "Danificado", increment stock back?
-        // Let's increment stock back unless it's damaged or natural wear?
-        // Actually, for simplicity we might just not manage stock on returns unless specifically asked, 
-        // but if we want to:
-        // We don't have the Epi ID directly inside `entregas`, just the `codigoEpi` (nome). 
-        // We'd have to find it by name. We'll skip stock increment to avoid bugs with name mismatches, 
-        // as typically returned EPIs are discarded or sent to maintenance.
+      }
+      
+      // 2. Processar Nova Entrega
+      for (const epiId of selectedEpis) {
+        const epi = epis.find(e => e.id === epiId);
+        if (epi) {
+          await addDoc(collection(db, 'entregas'), {
+            funcionarioId: selectedEmployeeId,
+            codigoEpi: epi.nome,
+            quantidade: 1, 
+            ca: epi.ca || "N/A",
+            dataEntrega: exchangeDate,
+            observacoes: `Troca: ${notes}`,
+            createdAt: Date.now()
+          });
+          
+          const epiRef = doc(db, 'epis', epi.id);
+          const currentEpi = await getDoc(epiRef);
+          if (currentEpi.exists()) {
+            const currentQuantity = currentEpi.data().quantidade || 0;
+            if (currentQuantity > 0) {
+                await updateDoc(epiRef, { quantidade: currentQuantity - 1 });
+            }
+          }
+        }
       }
       onBack(); // Go back after success
     } catch (err: any) {
       console.error("Submit error:", err);
-      setSubmitError('Erro ao registrar devolução.');
+      setSubmitError('Erro ao registrar troca.');
       handleFirestoreError(err, OperationType.UPDATE, 'entregas');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const filteredEpis = epis.filter(epi => 
+    epi.nome?.toLowerCase().includes(searchEpi.toLowerCase()) || 
+    epi.ca?.toLowerCase().includes(searchEpi.toLowerCase())
+  );
+  
+  const episByCategory = filteredEpis.reduce((acc, epi) => {
+    const cat = epi.categoria || 'Outros';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(epi);
+    return acc;
+  }, {} as Record<string, (typeof epis)[0][]>);
 
   const selectedEmployee = employees.find(e => e.id === selectedEmployeeId);
 
@@ -122,35 +168,31 @@ export function Return({ onBack }: ReturnProps) {
         <div className="hidden md:block p-2 cursor-pointer hover:bg-white/10 rounded-full transition-colors" onClick={step === 1 ? onBack : handlePrev}>
             <ChevronLeft size={24} />
         </div>
-        <h1 className="text-xl md:text-2xl font-bold">Devolução de EPI</h1>
+        <h1 className="text-xl md:text-2xl font-bold">Troca de EPI</h1>
         <div className="w-8"></div>
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden max-w-4xl mx-auto w-full">
         {/* Stepper */}
-        <div className="bg-white px-6 md:px-12 py-8 border-b border-gray-200 shrink-0 shadow-sm md:rounded-b-3xl">
+        <div className="bg-white px-4 md:px-12 py-8 border-b border-gray-200 shrink-0 shadow-sm md:rounded-b-3xl">
           <div className="flex justify-between relative max-w-lg mx-auto w-full">
             <div className="absolute top-5 left-0 w-full h-[2px] bg-gray-200 -z-10"></div>
             
-            <div className="flex flex-col items-center gap-3">
-              <div className={cn("w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm md:text-base font-bold text-white shadow-md ring-4", step >= 1 ? "bg-[#0B5C36] ring-green-50" : "bg-gray-300 ring-transparent")}>
-                1
-              </div>
-              <span className={cn("text-xs md:text-sm font-bold", step >= 1 ? "text-[#0B5C36]" : "text-gray-400")}>Funcionário</span>
+            <div className="flex flex-col items-center gap-2">
+              <div className={cn("w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm md:text-base font-bold text-white shadow-md ring-4", step >= 1 ? "bg-[#0B5C36] ring-green-50" : "bg-gray-300 ring-transparent")}>1</div>
+              <span className={cn("text-xs md:text-sm font-bold text-center", step >= 1 ? "text-[#0B5C36]" : "text-gray-400")}>Dados</span>
             </div>
-            
-            <div className="flex flex-col items-center gap-3">
-              <div className={cn("w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm md:text-base font-bold transition-colors shadow-md ring-4", step >= 2 ? "bg-[#0B5C36] text-white ring-green-50" : "bg-white border-2 border-gray-200 text-gray-400 ring-transparent")}>
-                2
-              </div>
-              <span className={cn("text-xs md:text-sm font-bold transition-colors", step >= 2 ? "text-[#0B5C36]" : "text-gray-400")}>EPIs Pendentes</span>
+            <div className="flex flex-col items-center gap-2">
+              <div className={cn("w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm md:text-base font-bold transition-colors shadow-md ring-4", step >= 2 ? "bg-[#0B5C36] text-white ring-green-50" : "bg-white border-2 border-gray-200 text-gray-400 ring-transparent")}>2</div>
+              <span className={cn("text-xs md:text-sm font-bold text-center", step >= 2 ? "text-[#0B5C36]" : "text-gray-400")}>Devoluções</span>
             </div>
-            
-            <div className="flex flex-col items-center gap-3">
-              <div className={cn("w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm md:text-base font-bold transition-colors shadow-md ring-4", step >= 3 ? "bg-[#0B5C36] text-white ring-green-50" : "bg-white border-2 border-gray-200 text-gray-400 ring-transparent")}>
-                3
-              </div>
-              <span className={cn("text-xs md:text-sm font-bold transition-colors", step >= 3 ? "text-[#0B5C36]" : "text-gray-400")}>Resumo</span>
+            <div className="flex flex-col items-center gap-2">
+              <div className={cn("w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm md:text-base font-bold transition-colors shadow-md ring-4", step >= 3 ? "bg-[#0B5C36] text-white ring-green-50" : "bg-white border-2 border-gray-200 text-gray-400 ring-transparent")}>3</div>
+              <span className={cn("text-xs md:text-sm font-bold text-center", step >= 3 ? "text-[#0B5C36]" : "text-gray-400")}>Entregas</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <div className={cn("w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm md:text-base font-bold transition-colors shadow-md ring-4", step >= 4 ? "bg-[#0B5C36] text-white ring-green-50" : "bg-white border-2 border-gray-200 text-gray-400 ring-transparent")}>4</div>
+              <span className={cn("text-xs md:text-sm font-bold text-center", step >= 4 ? "text-[#0B5C36]" : "text-gray-400")}>Resumo</span>
             </div>
           </div>
         </div>
@@ -167,7 +209,7 @@ export function Return({ onBack }: ReturnProps) {
               {/* --- STEP 1 --- */}
               {step === 1 && (
                 <div className="max-w-lg mx-auto">
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-8 mt-4">Selecionar Funcionário para Devolução</h2>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-8 mt-4">Selecionar Funcionário</h2>
                     
                     <div className="space-y-6">
                     <div className="space-y-2.5">
@@ -185,12 +227,12 @@ export function Return({ onBack }: ReturnProps) {
                     </div>
 
                     <div className="space-y-2.5">
-                        <label className="text-sm md:text-base font-semibold text-gray-700">Data da devolução</label>
+                        <label className="text-sm md:text-base font-semibold text-gray-700">Data da troca</label>
                         <div className="relative">
                         <input 
                             type="date" 
-                            value={returnDate}
-                            onChange={(e) => setReturnDate(e.target.value)}
+                            value={exchangeDate}
+                            onChange={(e) => setExchangeDate(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-2xl p-4 md:p-5 text-base md:text-lg text-gray-800 outline-none focus:ring-2 focus:ring-[#0B5C36] focus:border-transparent appearance-none" 
                         />
                         <Calendar size={24} className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
@@ -204,11 +246,9 @@ export function Return({ onBack }: ReturnProps) {
                             onChange={(e) => setReason(e.target.value)}
                             className="w-full bg-white border border-gray-200 rounded-2xl p-4 md:p-5 text-base md:text-lg text-gray-800 outline-none focus:ring-2 focus:ring-[#0B5C36] focus:border-transparent appearance-none cursor-pointer"
                         >
-                            <option value="" disabled>Selecione o motivo</option>
+                            <option value="Troca">Troca</option>
                             <option value="Desgaste natural">Desgaste natural</option>
                             <option value="Danificado">Danificado</option>
-                            <option value="Desligamento">Desligamento</option>
-                            <option value="Troca">Troca</option>
                         </select>
                     </div>
 
@@ -226,10 +266,10 @@ export function Return({ onBack }: ReturnProps) {
 
                     <button 
                     onClick={handleNext}
-                    disabled={!selectedEmployeeId || !reason}
+                    disabled={!selectedEmployeeId}
                     className="w-full bg-[#0B5C36] text-white font-bold text-lg rounded-2xl py-4 md:py-5 mt-10 shadow-lg hover:bg-[#094d2d] transition-all disabled:opacity-50"
                     >
-                    Avançar para Seleção de EPIs
+                    Avançar para Devolução
                     </button>
                 </div>
               )}
@@ -238,11 +278,11 @@ export function Return({ onBack }: ReturnProps) {
               {step === 2 && (
                 <div className="w-full max-w-2xl mx-auto">
                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-                       <h2 className="text-xl md:text-2xl font-bold text-gray-800">EPIs pendentes de devolução</h2>
+                       <h2 className="text-xl md:text-2xl font-bold text-gray-800">Selecione EPIs que serão devolvidos</h2>
                    </div>
 
                    <div className="space-y-4">
-                       {loadingEpis ? (
+                       {loadingEntregas ? (
                            <div className="flex justify-center items-center py-12">
                                <div className="w-8 h-8 border-4 border-[#0B5C36] border-t-transparent rounded-full animate-spin"></div>
                            </div>
@@ -266,7 +306,7 @@ export function Return({ onBack }: ReturnProps) {
                                           <div className="flex justify-between items-center mt-1">
                                               <p className="text-xs text-gray-500">CA: {entrega.ca || 'N/A'}</p>
                                               <p className="text-xs text-gray-500">
-                                                  Entregue em: {new Date(entrega.dataEntrega).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
+                                                  Retirado em: {new Date(entrega.dataEntrega).toLocaleDateString('pt-BR')}
                                               </p>
                                           </div>
                                       </div>
@@ -275,7 +315,7 @@ export function Return({ onBack }: ReturnProps) {
                            })
                        ) : (
                            <div className="text-center py-12 text-gray-500 bg-white rounded-2xl border border-gray-200">
-                               <p>Nenhum EPI pendente de devolução para este funcionário.</p>
+                               <p>Nenhum EPI pendente para este funcionário.</p>
                            </div>
                        )}
                    </div>
@@ -287,7 +327,7 @@ export function Return({ onBack }: ReturnProps) {
                            disabled={selectedEntregas.length === 0}
                            className="flex-1 bg-[#0B5C36] text-white font-bold py-4 rounded-xl hover:bg-[#094d2d] transition-colors disabled:opacity-50"
                        >
-                           Revisar ({selectedEntregas.length})
+                           Avançar para Nova Entrega
                        </button>
                    </div>
                 </div>
@@ -295,8 +335,80 @@ export function Return({ onBack }: ReturnProps) {
 
               {/* --- STEP 3 --- */}
               {step === 3 && (
+                <div className="w-full">
+                   <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                       <h2 className="text-xl md:text-2xl font-bold text-gray-800">Selecione EPIs que serão entregues</h2>
+                       <div className="relative max-w-sm w-full">
+                           <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                           <input 
+                               type="text" 
+                               value={searchEpi}
+                               onChange={(e) => setSearchEpi(e.target.value)}
+                               placeholder="Buscar EPI..."
+                               className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-full focus:ring-2 focus:ring-[#0B5C36] outline-none"
+                           />
+                       </div>
+                   </div>
+
+                   <div className="space-y-8">
+                       {(Object.entries(episByCategory) as [string, any[]][]).sort().map(([category, items]) => (
+                           <div key={category}>
+                               <h3 className="text-lg font-bold text-[#0B5C36] border-b border-gray-200 pb-2 mb-4">{category}</h3>
+                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                   {items.map(epi => {
+                                        const isSelected = selectedEpis.includes(epi.id);
+                                        const outOfStock = epi.quantidade <= 0;
+                                        return (
+                                           <div 
+                                               key={epi.id} 
+                                               onClick={() => !outOfStock && toggleEpiSelection(epi.id)}
+                                               className={cn(
+                                                   "flex items-center p-4 rounded-xl border-2 cursor-pointer transition-all gap-4",
+                                                   isSelected ? "border-[#0B5C36] bg-green-50 shadow-sm" : outOfStock ? "border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed" : "border-gray-100 bg-white hover:border-[#0B5C36]/30"
+                                               )}
+                                           >
+                                               <div className={cn("w-6 h-6 rounded border flex items-center justify-center shrink-0", isSelected ? "border-[#0B5C36] bg-[#0B5C36] text-white" : "border-gray-300")}>
+                                                   {isSelected && <Check size={16} />}
+                                               </div>
+                                               <div className="flex-1">
+                                                   <p className="font-semibold text-gray-800 line-clamp-1" title={epi.nome}>{epi.nome}</p>
+                                                   <div className="flex justify-between items-center mt-1">
+                                                       <p className="text-xs text-gray-500">CA: {epi.ca || 'N/A'}</p>
+                                                       <p className={cn("text-xs font-bold", outOfStock ? "text-red-500" : "text-[#0B5C36]")}>
+                                                           {outOfStock ? 'Sem estoque' : `Estoque: ${epi.quantidade}`}
+                                                       </p>
+                                                   </div>
+                                               </div>
+                                           </div>
+                                        );
+                                   })}
+                               </div>
+                           </div>
+                       ))}
+                       {Object.keys(episByCategory).length === 0 && (
+                           <div className="text-center py-12 text-gray-500">
+                               <p>Nenhum EPI encontrado.</p>
+                           </div>
+                       )}
+                   </div>
+
+                   <div className="sticky bottom-4 mt-8 flex gap-4 bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-lg border border-gray-100">
+                       <button onClick={handlePrev} className="flex-1 bg-gray-100 text-gray-700 font-bold py-4 rounded-xl hover:bg-gray-200 transition-colors">Voltar</button>
+                       <button 
+                           onClick={handleNext} 
+                           disabled={selectedEpis.length === 0}
+                           className="flex-1 bg-[#0B5C36] text-white font-bold py-4 rounded-xl hover:bg-[#094d2d] transition-colors disabled:opacity-50"
+                       >
+                           Revisar Troca
+                       </button>
+                   </div>
+                </div>
+              )}
+
+              {/* --- STEP 4 --- */}
+              {step === 4 && (
                 <div className="max-w-2xl mx-auto w-full">
-                   <h2 className="text-2xl font-bold text-gray-800 mb-6 mt-4">Resumo da Devolução</h2>
+                   <h2 className="text-2xl font-bold text-gray-800 mb-6 mt-4">Resumo da Troca</h2>
 
                    {submitError && (
                         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-3 mb-6">
@@ -307,20 +419,16 @@ export function Return({ onBack }: ReturnProps) {
 
                    <div className="bg-white border text-left border-gray-200 rounded-2xl p-6 shadow-sm mb-6 space-y-6">
                        <div>
-                           <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Dados da Devolução</h3>
+                           <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Dados da Operação</h3>
                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                <div>
                                    <p className="text-xs text-gray-500 mb-1">Funcionário</p>
                                    <p className="font-semibold text-gray-800">{selectedEmployee?.nome}</p>
                                </div>
                                <div>
-                                   <p className="text-xs text-gray-500 mb-1">Matrícula</p>
-                                   <p className="font-semibold text-gray-800">{selectedEmployee?.matricula || 'N/A'}</p>
-                               </div>
-                               <div>
-                                   <p className="text-xs text-gray-500 mb-1">Data Devolução</p>
+                                   <p className="text-xs text-gray-500 mb-1">Data</p>
                                    <p className="font-semibold text-gray-800">
-                                       {new Date(returnDate).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}
+                                       {new Date(exchangeDate).toLocaleDateString('pt-BR')}
                                    </p>
                                </div>
                                <div>
@@ -342,12 +450,30 @@ export function Return({ onBack }: ReturnProps) {
                                {selectedEntregas.map(entregaId => {
                                    const entrega = employeeEntregas.find(e => e.id === entregaId);
                                    return entrega ? (
-                                       <div key={entrega.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                       <div key={entrega.id} className="flex justify-between items-center p-3 bg-red-50 rounded-xl border border-red-100">
                                            <div>
-                                               <p className="font-semibold text-gray-800">{entrega.codigoEpi}</p>
-                                               <p className="text-xs text-gray-500">CA: {entrega.ca || 'N/A'} - Retirado em {new Date(entrega.dataEntrega).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</p>
+                                               <p className="font-semibold text-red-900">{entrega.codigoEpi}</p>
+                                               <p className="text-xs text-red-700">CA: {entrega.ca || 'N/A'}</p>
                                            </div>
-                                           <div className="text-xs font-bold text-gray-600 bg-gray-200 px-2 py-1 rounded">Devolvido</div>
+                                           <div className="text-xs font-bold text-red-700 bg-red-100 px-2 py-1 rounded">- Devolvido</div>
+                                       </div>
+                                   ) : null;
+                               })}
+                           </div>
+                       </div>
+                       
+                       <div className="border-t border-gray-100 pt-6">
+                           <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">EPIs Novas Entregas ({selectedEpis.length})</h3>
+                           <div className="space-y-3">
+                               {selectedEpis.map(epiId => {
+                                   const epi = epis.find(e => e.id === epiId);
+                                   return epi ? (
+                                       <div key={epi.id} className="flex justify-between items-center p-3 bg-green-50 rounded-xl border border-green-100">
+                                           <div>
+                                               <p className="font-semibold text-green-900">{epi.nome}</p>
+                                               <p className="text-xs text-green-700">CA: {epi.ca || 'N/A'}</p>
+                                           </div>
+                                           <div className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">+ Novo</div>
                                        </div>
                                    ) : null;
                                })}

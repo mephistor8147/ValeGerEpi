@@ -55,7 +55,6 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   }
   const errorMessage = "Erro na operação do sistema. " + (error instanceof Error ? error.message : String(error));
-  alert(errorMessage);
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  console.error('Firestore Error: ', errorMessage, JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }

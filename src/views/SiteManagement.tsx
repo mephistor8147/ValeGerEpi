@@ -23,6 +23,8 @@ export function SiteManagement({ onBack }: SiteManagementProps) {
   const [sites, setSites] = useState<SiteItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<SiteItem>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'obras'), (snapshot) => {
@@ -52,24 +54,21 @@ export function SiteManagement({ onBack }: SiteManagementProps) {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir esta obra?')) {
-      try {
-        await deleteDoc(doc(db, 'obras', id));
-      } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, 'obras');
-      }
+    try {
+      await deleteDoc(doc(db, 'obras', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, 'obras');
     }
   };
 
   const handleSave = async () => {
     if (!formData.nome || !formData.codigo || !formData.status) {
-      alert('Preencha os campos obrigatórios (Código, Nome, Status).');
+      setSubmitError('Preencha os campos obrigatórios (Código, Nome, Status).');
       return;
     }
 
-    if (!confirm('Tem certeza que deseja salvar esta obra?')) {
-      return;
-    }
+    setIsSubmitting(true);
+    setSubmitError('');
 
     try {
       const siteData = {
@@ -91,6 +90,8 @@ export function SiteManagement({ onBack }: SiteManagementProps) {
       setViewMode('list');
     } catch (error) {
       handleFirestoreError(error, editingId ? OperationType.UPDATE : OperationType.CREATE, 'obras');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -185,9 +186,24 @@ export function SiteManagement({ onBack }: SiteManagementProps) {
                 </div>
               </div>
 
-              <button onClick={handleSave} className="w-full bg-[#0B5C36] text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 shadow-md hover:bg-[#094d2d] transition-colors mt-4">
-                <Save size={20} />
-                Salvar Obra
+              {submitError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mt-4">
+                      {submitError}
+                  </div>
+              )}
+
+              <button disabled={isSubmitting} onClick={handleSave} className="w-full bg-[#0B5C36] text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 shadow-md hover:bg-[#094d2d] transition-colors mt-4 disabled:opacity-50">
+                {isSubmitting ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save size={20} />
+                    Salvar Obra
+                  </>
+                )}
               </button>
             </div>
           </div>

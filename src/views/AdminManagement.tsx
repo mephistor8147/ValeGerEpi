@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, Plus, Search, Edit2, Trash2, Camera, Upload, Save, Shield, Eye, EyeOff } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
@@ -31,6 +31,50 @@ export function AdminManagement({ onBack }: AdminManagementProps) {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<AdminItem> & { senha?: string }>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 300;
+          const MAX_HEIGHT = 300;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          setFormData({ ...formData, fotoUrl: dataUrl });
+          setSubmitError('');
+        };
+        img.src = reader.result as string;
+      };
+      reader.onerror = () => {
+        setSubmitError('Erro ao carregar a imagem.');
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const niveisAcesso = [
     { value: 'master', label: 'Master' },
@@ -67,24 +111,21 @@ export function AdminManagement({ onBack }: AdminManagementProps) {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja remover as permissões deste administrador?')) {
-      try {
-        await deleteDoc(doc(db, 'admins', id));
-      } catch (error) {
-        handleFirestoreError(error, OperationType.DELETE, 'admins');
-      }
+    try {
+      await deleteDoc(doc(db, 'admins', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, 'admins');
     }
   };
 
   const handleSave = async () => {
     if (!formData.funcionarioId || !formData.nivel || !formData.status || !formData.email) {
-      alert('Preencha os campos obrigatórios (Funcionário, E-mail, Nível, Status).');
+      setSubmitError('Preencha os campos obrigatórios (Funcionário, E-mail, Nível, Status).');
       return;
     }
 
-    if (!confirm('Tem certeza que deseja salvar este administrador?')) {
-      return;
-    }
+    setIsSubmitting(true);
+    setSubmitError('');
 
     const funcionario = funcionarios.find(f => f.id === formData.funcionarioId);
     
@@ -97,7 +138,8 @@ export function AdminManagement({ onBack }: AdminManagementProps) {
           const userCredential = await createUserWithEmailAndPassword(secondaryAuth, formData.email, formData.senha);
           authUid = userCredential.user.uid;
         } catch (authErr: any) {
-          alert('Erro ao criar usuário: ' + authErr.message);
+          setSubmitError('Erro ao criar usuário: ' + authErr.message);
+          setIsSubmitting(false);
           return;
         }
       }
@@ -124,6 +166,8 @@ export function AdminManagement({ onBack }: AdminManagementProps) {
       setViewMode('list');
     } catch (error) {
       handleFirestoreError(error, editingId ? OperationType.UPDATE : OperationType.CREATE, 'admins');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -219,17 +263,32 @@ export function AdminManagement({ onBack }: AdminManagementProps) {
               
               {/* Image Upload Area */}
               <div className="flex flex-col items-center justify-center gap-3">
-                <div className="w-28 h-28 bg-gray-100 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 relative overflow-hidden group">
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-28 h-28 bg-gray-100 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 relative overflow-hidden group cursor-pointer"
+                >
                   {formData.fotoUrl ? (
                     <img src={formData.fotoUrl} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
                     <Camera size={32} />
                   )}
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Upload size={24} className="text-white" />
                   </div>
                 </div>
-                <p className="text-sm font-medium text-[#0B5C36] cursor-pointer hover:underline">Adicionar foto (Câmera/Envio)</p>
+                <p 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-sm font-medium text-[#0B5C36] cursor-pointer hover:underline"
+                >
+                  Adicionar foto (Câmera/Envio)
+                </p>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  className="hidden" 
+                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -336,9 +395,24 @@ export function AdminManagement({ onBack }: AdminManagementProps) {
                 </p>
               </div>
 
-              <button onClick={handleSave} className="w-full bg-[#0B5C36] text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 shadow-md hover:bg-[#094d2d] transition-colors mt-6">
-                <Save size={20} />
-                Salvar Administrador
+              {submitError && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mt-4">
+                      {submitError}
+                  </div>
+              )}
+
+              <button disabled={isSubmitting} onClick={handleSave} className="w-full bg-[#0B5C36] text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 shadow-md hover:bg-[#094d2d] transition-colors mt-6 disabled:opacity-50">
+                {isSubmitting ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save size={20} />
+                    Salvar Administrador
+                  </>
+                )}
               </button>
             </div>
           </div>
