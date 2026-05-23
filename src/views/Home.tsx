@@ -151,8 +151,62 @@ export function Home({ onNavigate, adminUser }: HomeProps) {
           </div>
         </div>
 
-        {/* Resumo Geral */}
+        {/* Ações Rápidas */}
         <div className="px-5 md:px-6 mt-6 md:mt-8">
+          <h2 className="text-lg md:text-xl font-bold text-[#E2E8F0] mb-4 md:mb-6">
+            Ações rápidas
+          </h2>
+          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-y-6 gap-x-2 md:gap-x-4">
+            <ActionButton
+              icon={PackageCheck}
+              label="Entregar EPI"
+              onClick={() => onNavigate("delivery")}
+            />
+            <ActionButton
+              icon={PackageMinus}
+              label="Devolver EPI"
+              onClick={() => onNavigate("return")}
+            />
+            <ActionButton
+              icon={RefreshCw}
+              label="Trocar EPI"
+              onClick={() => onNavigate("exchange")}
+            />
+            <ActionButton
+              icon={Users}
+              label="Funcionários"
+              onClick={() => onNavigate("employees")}
+            />
+            <ActionButton
+              icon={Package}
+              label="EPIs"
+              onClick={() => onNavigate("catalog")}
+            />
+            <ActionButton
+              icon={LayoutList}
+              label="Relatórios"
+              onClick={() => onNavigate("reports")}
+            />
+            <ActionButton
+              icon={BellRing}
+              label="Alertas"
+              onClick={() => onNavigate("alerts")}
+            />
+            <ActionButton
+              icon={GraduationCap}
+              label="Treinamentos"
+              onClick={() => {}}
+            />
+            <ActionButton
+              icon={Settings}
+              label="Configurações"
+              onClick={() => onNavigate("settings")}
+            />
+          </div>
+        </div>
+
+        {/* Resumo Geral */}
+        <div className="px-5 md:px-6 mt-8 md:mt-10">
           <div className="flex justify-between items-end mb-4">
             <h2 className="text-lg md:text-xl font-bold text-[#E2E8F0]">
               Resumo geral
@@ -215,60 +269,6 @@ export function Home({ onNavigate, adminUser }: HomeProps) {
                 </p>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Ações Rápidas */}
-        <div className="px-5 md:px-6 mt-8 md:mt-10">
-          <h2 className="text-lg md:text-xl font-bold text-[#E2E8F0] mb-4 md:mb-6">
-            Ações rápidas
-          </h2>
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-y-6 gap-x-2 md:gap-x-4">
-            <ActionButton
-              icon={PackageCheck}
-              label="Entregar EPI"
-              onClick={() => onNavigate("delivery")}
-            />
-            <ActionButton
-              icon={PackageMinus}
-              label="Devolver EPI"
-              onClick={() => onNavigate("return")}
-            />
-            <ActionButton
-              icon={RefreshCw}
-              label="Trocar EPI"
-              onClick={() => onNavigate("exchange")}
-            />
-            <ActionButton
-              icon={Users}
-              label="Funcionários"
-              onClick={() => onNavigate("employees")}
-            />
-            <ActionButton
-              icon={Package}
-              label="EPIs"
-              onClick={() => onNavigate("catalog")}
-            />
-            <ActionButton
-              icon={LayoutList}
-              label="Relatórios"
-              onClick={() => onNavigate("reports")}
-            />
-            <ActionButton
-              icon={BellRing}
-              label="Alertas"
-              onClick={() => onNavigate("alerts")}
-            />
-            <ActionButton
-              icon={GraduationCap}
-              label="Treinamentos"
-              onClick={() => {}}
-            />
-            <ActionButton
-              icon={Settings}
-              label="Configurações"
-              onClick={() => onNavigate("settings")}
-            />
           </div>
         </div>
 

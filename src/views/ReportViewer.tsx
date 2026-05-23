@@ -28,6 +28,18 @@ export function ReportViewer({ onBack, reportId }: ReportViewerProps) {
       try {
         let results: any[] = [];
 
+        // Fetch employees
+        const empSnap = await getDocs(collection(db, "funcionarios"));
+        const employeesMap = new Map();
+        empSnap.forEach((e) =>
+          employeesMap.set(e.id, {
+            id: e.id,
+            nome: e.data().nome,
+            matricula: e.data().matricula,
+            count: 0,
+          }),
+        );
+
         // Basic mapping for specific reports
         if (reportId === "entregas") {
           const q = query(
@@ -35,7 +47,14 @@ export function ReportViewer({ onBack, reportId }: ReportViewerProps) {
             orderBy("createdAt", "desc"),
           );
           const snap = await getDocs(q);
-          results = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          results = snap.docs.map((d) => {
+            const data = d.data();
+            return {
+              id: d.id,
+              ...data,
+              funcionarioNome: employeesMap.get(data.funcionarioId)?.nome || "Não encontrado",
+            };
+          });
         } else if (reportId === "devolucoes") {
           const q = query(
             collection(db, "entregas"),
@@ -43,7 +62,14 @@ export function ReportViewer({ onBack, reportId }: ReportViewerProps) {
           );
           const snap = await getDocs(q);
           results = snap.docs
-            .map((d) => ({ id: d.id, ...d.data() }))
+            .map((d) => {
+              const data = d.data();
+              return {
+                id: d.id,
+                ...data,
+                funcionarioNome: employeesMap.get(data.funcionarioId)?.nome || "Não encontrado",
+              };
+            })
             .filter((item: any) => item.dataDevolucao);
         } else if (reportId === "estoque") {
           const q = query(collection(db, "epis"), orderBy("nome", "asc"));
@@ -59,17 +85,6 @@ export function ReportViewer({ onBack, reportId }: ReportViewerProps) {
           if (reportId === "vencidos") results = []; // For demo, let's say nothing is expired
         } else if (reportId === "funcionario") {
           // Could group all deliveries by employee
-          const empSnap = await getDocs(collection(db, "funcionarios"));
-          const employeesMap = new Map();
-          empSnap.forEach((e) =>
-            employeesMap.set(e.id, {
-              id: e.id,
-              nome: e.data().nome,
-              matricula: e.data().matricula,
-              count: 0,
-            }),
-          );
-
           const reqSnap = await getDocs(collection(db, "entregas"));
           reqSnap.forEach((r) => {
             const fId = r.data().funcionarioId;
@@ -146,6 +161,7 @@ export function ReportViewer({ onBack, reportId }: ReportViewerProps) {
                     {reportId === "entregas" || reportId === "devolucoes" ? (
                       <tr>
                         <th className="p-4 font-semibold border-b">Data</th>
+                        <th className="p-4 font-semibold border-b">Funcionário</th>
                         <th className="p-4 font-semibold border-b">EPI</th>
                         <th className="p-4 font-semibold border-b">CA</th>
                         <th className="p-4 font-semibold border-b">Qtd</th>
@@ -202,6 +218,9 @@ export function ReportViewer({ onBack, reportId }: ReportViewerProps) {
                                     ? item.dataDevolucao
                                     : item.dataEntrega,
                                 ).toLocaleDateString()}
+                              </td>
+                              <td className="p-4 text-[#E2E8F0]">
+                                {item.funcionarioNome}
                               </td>
                               <td className="p-4 text-[#E2E8F0] font-medium">
                                 {item.codigoEpi}
