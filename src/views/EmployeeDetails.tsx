@@ -60,6 +60,15 @@ export function EmployeeDetails({
             }
           }
 
+          // Fetch epis to get fotoUrls
+          const episQ = query(collection(db, "epis"));
+          const episSnap = await getDocs(episQ);
+          const episMap = new Map();
+          episSnap.docs.forEach((d) => {
+            const data = d.data();
+            if (data.nome) episMap.set(data.nome, data.fotoUrl);
+          });
+
           // Fetch entregas for this employee
           const entregasQ = query(
             collection(db, "entregas"),
@@ -71,9 +80,14 @@ export function EmployeeDetails({
             ...(d.data() as any),
           }));
 
-          setEntregasHistory(
-            entregasData.sort((a, b) => b.createdAt - a.createdAt),
-          );
+          const historyList = entregasData
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .map((entrega) => ({
+              ...entrega,
+              fotoUrl: episMap.get(entrega.codigoEpi) || "",
+            }));
+
+          setEntregasHistory(historyList);
 
           const episList = entregasData
             .filter((entrega) => !entrega.dataDevolucao)
@@ -85,6 +99,7 @@ export function EmployeeDetails({
               valid: "Consultar validade",
               status: "valid",
               adminResponsavelNome: entrega.adminResponsavelNome || "N/A",
+              fotoUrl: episMap.get(entrega.codigoEpi) || "",
             }));
 
           setAssignedEpis(episList);
@@ -241,8 +256,12 @@ export function EmployeeDetails({
                     className="bg-[#152A32] p-5 md:p-6 rounded-2xl shadow-sm border border-[#253B44] flex flex-col sm:flex-row sm:items-center gap-4 hover:shadow-md transition-shadow"
                   >
                     <div className="flex items-center gap-4 flex-1">
-                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-[#0D2027] flex items-center justify-center p-2 shrink-0 border border-[#253B44]">
-                        <span className="text-3xl md:text-4xl">🧰</span>
+                      <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-[#0D2027] flex items-center justify-center p-2 shrink-0 border border-[#253B44] overflow-hidden">
+                        {epi.fotoUrl ? (
+                          <img src={epi.fotoUrl} alt={epi.name} className="w-full h-full object-cover rounded-lg" />
+                        ) : (
+                          <span className="text-3xl md:text-4xl">🧰</span>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4
@@ -367,14 +386,23 @@ export function EmployeeDetails({
                       className="bg-[#152A32] p-5 rounded-2xl shadow-sm border border-[#253B44]"
                     >
                       <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h4 className="font-bold text-[#E2E8F0]">
-                            {entrega.codigoEpi}
-                          </h4>
-                          <p className="text-sm text-[#64748B]">
-                            CA: {entrega.ca || "N/A"} • Qtd:{" "}
-                            {entrega.quantidade || 1}
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-lg bg-[#0D2027] flex items-center justify-center shrink-0 border border-[#253B44] overflow-hidden">
+                            {entrega.fotoUrl ? (
+                              <img src={entrega.fotoUrl} alt={entrega.codigoEpi} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="text-xl">🧰</span>
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-[#E2E8F0]">
+                              {entrega.codigoEpi}
+                            </h4>
+                            <p className="text-sm text-[#64748B]">
+                              CA: {entrega.ca || "N/A"} • Qtd:{" "}
+                              {entrega.quantidade || 1}
+                            </p>
+                          </div>
                         </div>
                         <span
                           className={cn(
