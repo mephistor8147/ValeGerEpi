@@ -1,8 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ChevronLeft, Plus, Search, Edit2, Trash2, Camera, Upload, Save } from 'lucide-react';
-import { cn } from '../lib/utils';
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import React, { useState, useEffect, useRef } from "react";
+import {
+  ChevronLeft,
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
+  Camera,
+  Upload,
+  Save,
+} from "lucide-react";
+import { cn } from "../lib/utils";
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+} from "firebase/firestore";
+import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 
 interface EmployeeManagementProps {
   onBack: () => void;
@@ -18,19 +34,19 @@ interface EmployeeItem {
   calca?: string;
   bota?: string;
   fotoUrl?: string;
-  status?: 'Ativo' | 'Inativo';
+  status?: "Ativo" | "Inativo";
   createdAt: number;
 }
 
 export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
-  const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
+  const [viewMode, setViewMode] = useState<"list" | "form">("list");
   const [employees, setEmployees] = useState<EmployeeItem[]>([]);
-  const [cargos, setCargos] = useState<{id: string, titulo: string}[]>([]);
-  const [obras, setObras] = useState<{id: string, nome: string}[]>([]);
+  const [cargos, setCargos] = useState<{ id: string; titulo: string }[]>([]);
+  const [obras, setObras] = useState<{ id: string; nome: string }[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<EmployeeItem>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState('');
+  const [submitError, setSubmitError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,7 +56,7 @@ export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
       reader.onloadend = () => {
         const img = new Image();
         img.onload = () => {
-          const canvas = document.createElement('canvas');
+          const canvas = document.createElement("canvas");
           const MAX_WIDTH = 300;
           const MAX_HEIGHT = 300;
           let width = img.width;
@@ -59,77 +75,102 @@ export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
           }
           canvas.width = width;
           canvas.height = height;
-          const ctx = canvas.getContext('2d');
+          const ctx = canvas.getContext("2d");
           ctx?.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
           setFormData({ ...formData, fotoUrl: dataUrl });
-          setSubmitError('');
+          setSubmitError("");
         };
         img.src = reader.result as string;
       };
       reader.onerror = () => {
-        setSubmitError('Erro ao carregar a imagem.');
+        setSubmitError("Erro ao carregar a imagem.");
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const tamanhosCamisa = ['P', 'M', 'G', 'GG', 'XG', 'XGG'];
-  const tamanhosCalca = ['P', 'M', 'G', 'GG', 'XG', 'XGG'];
-  const tamanhosBota = ['38', '39', '40', '41', '42', '43', '44', '45'];
+  const tamanhosCamisa = ["P", "M", "G", "GG", "XG", "XGG"];
+  const tamanhosCalca = ["P", "M", "G", "GG", "XG", "XGG"];
+  const tamanhosBota = ["38", "39", "40", "41", "42", "43", "44", "45"];
 
   useEffect(() => {
-    const unsubEmp = onSnapshot(collection(db, 'funcionarios'), (snapshot) => {
-      setEmployees(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as EmployeeItem)));
-    }, (error) => handleFirestoreError(error, OperationType.GET, 'funcionarios'));
+    const unsubEmp = onSnapshot(
+      collection(db, "funcionarios"),
+      (snapshot) => {
+        setEmployees(
+          snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as EmployeeItem),
+        );
+      },
+      (error) => handleFirestoreError(error, OperationType.GET, "funcionarios"),
+    );
 
-    const unsubCargos = onSnapshot(collection(db, 'cargos'), (snapshot) => {
-      setCargos(snapshot.docs.map(d => ({ id: d.id, titulo: d.data().titulo })));
-    }, (error) => handleFirestoreError(error, OperationType.GET, 'cargos'));
+    const unsubCargos = onSnapshot(
+      collection(db, "cargos"),
+      (snapshot) => {
+        setCargos(
+          snapshot.docs.map((d) => ({ id: d.id, titulo: d.data().titulo })),
+        );
+      },
+      (error) => handleFirestoreError(error, OperationType.GET, "cargos"),
+    );
 
-    const unsubObras = onSnapshot(collection(db, 'obras'), (snapshot) => {
-      setObras(snapshot.docs.map(d => ({ id: d.id, nome: d.data().nome })));
-    }, (error) => handleFirestoreError(error, OperationType.GET, 'obras'));
+    const unsubObras = onSnapshot(
+      collection(db, "obras"),
+      (snapshot) => {
+        setObras(snapshot.docs.map((d) => ({ id: d.id, nome: d.data().nome })));
+      },
+      (error) => handleFirestoreError(error, OperationType.GET, "obras"),
+    );
 
     return () => {
-      unsubEmp(); unsubCargos(); unsubObras();
+      unsubEmp();
+      unsubCargos();
+      unsubObras();
     };
   }, []);
 
   const handleCreateNew = () => {
     setEditingId(null);
     setFormData({
-      matricula: '',
-      nome: '',
-      obraId: '',
-      cargoId: '',
-      status: 'Ativo',
+      matricula: "",
+      nome: "",
+      obraId: "",
+      cargoId: "",
+      status: "Ativo",
     });
-    setViewMode('form');
+    setViewMode("form");
   };
 
   const handleEdit = (employee: EmployeeItem) => {
     setEditingId(employee.id);
     setFormData(employee);
-    setViewMode('form');
+    setViewMode("form");
   };
 
   const handleDelete = async (id: string) => {
     try {
-      await deleteDoc(doc(db, 'funcionarios', id));
+      await deleteDoc(doc(db, "funcionarios", id));
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, 'funcionarios');
+      handleFirestoreError(error, OperationType.DELETE, "funcionarios");
     }
   };
 
   const handleSave = async () => {
-    if (!formData.matricula || !formData.nome || !formData.obraId || !formData.cargoId) {
-      setSubmitError('Preencha os campos obrigatórios (Matrícula, Nome, Obra, Cargo).');
+    if (
+      !formData.matricula ||
+      !formData.nome ||
+      !formData.obraId ||
+      !formData.cargoId
+    ) {
+      setSubmitError(
+        "Preencha os campos obrigatórios (Matrícula, Nome, Obra, Cargo).",
+      );
       return;
     }
 
     setIsSubmitting(true);
-    setSubmitError('');
+    setSubmitError("");
 
     try {
       const empData: Partial<EmployeeItem> = {
@@ -137,99 +178,153 @@ export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
         nome: formData.nome,
         obraId: formData.obraId,
         cargoId: formData.cargoId,
-        camisa: formData.camisa || '',
-        calca: formData.calca || '',
-        bota: formData.bota || '',
-        fotoUrl: formData.fotoUrl || '',
-        status: formData.status || 'Ativo',
+        camisa: formData.camisa || "",
+        calca: formData.calca || "",
+        bota: formData.bota || "",
+        fotoUrl: formData.fotoUrl || "",
+        status: formData.status || "Ativo",
       };
 
       if (editingId) {
-        await updateDoc(doc(db, 'funcionarios', editingId), empData);
+        await updateDoc(doc(db, "funcionarios", editingId), empData);
       } else {
-        await addDoc(collection(db, 'funcionarios'), {
+        await addDoc(collection(db, "funcionarios"), {
           ...empData,
-          createdAt: Date.now()
+          createdAt: Date.now(),
         });
       }
-      setViewMode('list');
+      setViewMode("list");
     } catch (error) {
       console.error("Error saving employee:", error);
-      handleFirestoreError(error, editingId ? OperationType.UPDATE : OperationType.CREATE, 'funcionarios');
+      handleFirestoreError(
+        error,
+        editingId ? OperationType.UPDATE : OperationType.CREATE,
+        "funcionarios",
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   return (
-    <div className="flex flex-col flex-1 bg-gray-50 h-full">
+    <div className="flex flex-col flex-1 bg-[#0D2027] h-full">
       {/* Header */}
-      <div className="bg-[#0B5C36] px-4 pt-12 md:pt-8 pb-6 flex items-center justify-between text-white shrink-0 shadow-md">
-        <button onClick={viewMode === 'form' ? () => setViewMode('list') : onBack} className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors md:hidden"><ChevronLeft size={24} /></button>
-        <div className="hidden md:block p-2"><ChevronLeft size={24} className="opacity-0" /></div>
-        <h1 className="text-xl md:text-2xl font-bold">{viewMode === 'form' ? (editingId ? 'Editar Funcionário' : 'Cadastrar Funcionário') : 'Gerenciar Funcionários'}</h1>
+      <div className="bg-[#152A32] px-6 pt-16 md:pt-12 pb-10 rounded-b-[40px] md:rounded-b-[50px] relative overflow-hidden bg-cover bg-center bg-no-repeat flex items-center justify-between text-white shrink-0 shadow-md"
+        style={{ backgroundImage: 'linear-gradient(to bottom right, rgba(13, 32, 39, 0.95) 0%, rgba(13, 32, 39, 0.7) 100%), url("https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=1200&q=80")' }}>
+        <button
+          onClick={viewMode === "form" ? () => setViewMode("list") : onBack}
+          className="p-2 -ml-2 hover:bg-[#0D2027] hover:text-[#FFA767] rounded-full transition-colors md:hidden"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <div className="hidden md:block p-2">
+          <ChevronLeft size={24} className="opacity-0" />
+        </div>
+        <h1 className="text-3xl md:text-4xl font-bold text-[#FFA767] tracking-tight drop-shadow-sm">
+          {viewMode === "form"
+            ? editingId
+              ? "Editar Funcionário"
+              : "Cadastrar Funcionário"
+            : "Gerenciar Funcionários"}
+        </h1>
         <div className="w-8 md:hidden"></div>
       </div>
 
       <div className="flex-1 overflow-hidden flex flex-col w-full max-w-5xl mx-auto md:px-8">
-        {viewMode === 'list' ? (
+        {viewMode === "list" ? (
           <div className="flex flex-col flex-1 p-4 md:p-6 overflow-hidden">
             <div className="flex justify-between items-center mb-6 shrink-0">
               <div className="relative flex-1 mr-4">
-                <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input 
-                  type="text" 
-                  placeholder="Buscar funcionário..." 
-                  className="w-full border border-gray-200 rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-[#0B5C36] outline-none"
+                <Search
+                  size={20}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#475569]"
+                />
+                <input
+                  type="text"
+                  placeholder="Buscar funcionário..."
+                  className="w-full border border-[#2C4550] rounded-xl py-3 pl-10 pr-4 text-sm focus:ring-2 focus:ring-[#FFA767] outline-none"
                 />
               </div>
-              <button onClick={handleCreateNew} className="bg-[#0B5C36] text-white p-3 rounded-xl flex items-center justify-center shadow-sm hover:bg-[#094d2d] transition-colors whitespace-nowrap">
+              <button
+                onClick={handleCreateNew}
+                className="bg-[#FFA767] text-white p-3 rounded-xl flex items-center justify-center shadow-sm hover:bg-[#E08E55] transition-colors whitespace-nowrap"
+              >
                 <Plus size={20} className="md:mr-2" />
-                <span className="hidden md:inline font-semibold">Novo Funcionário</span>
+                <span className="hidden md:inline font-semibold">
+                  Novo Funcionário
+                </span>
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-3 pb-safe">
-              {employees.map(emp => (
-                <div key={emp.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 group">
-                  <div className="w-14 h-14 bg-gray-50 rounded-full flex items-center justify-center shrink-0 border border-gray-100 overflow-hidden">
+              {employees.map((emp) => (
+                <div
+                  key={emp.id}
+                  className="bg-[#152A32] p-4 rounded-2xl shadow-sm border border-[#253B44] flex items-center gap-4 group"
+                >
+                  <div className="w-14 h-14 bg-[#0D2027] rounded-full flex items-center justify-center shrink-0 border border-[#253B44] overflow-hidden">
                     {emp.fotoUrl ? (
-                      <img src={emp.fotoUrl} alt="Funcionário" className="w-full h-full object-cover" />
+                      <img
+                        src={emp.fotoUrl}
+                        alt="Funcionário"
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <span className="text-2xl">👤</span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-gray-800 truncate">{emp.nome}</h4>
-                      <span className={cn(
-                        "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
-                        emp.status === 'Inativo' ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
-                      )}>
-                        {emp.status || 'Ativo'}
+                      <h4 className="font-bold text-[#E2E8F0] truncate">
+                        {emp.nome}
+                      </h4>
+                      <span
+                        className={cn(
+                          "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                          emp.status === "Inativo"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-[#253B44] text-green-700",
+                        )}
+                      >
+                        {emp.status || "Ativo"}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500">Matrícula: {emp.matricula} | {cargos.find(c => c.id === emp.cargoId)?.titulo || 'S/ Cargo'}</p>
+                    <p className="text-xs text-[#64748B]">
+                      Matrícula: {emp.matricula} |{" "}
+                      {cargos.find((c) => c.id === emp.cargoId)?.titulo ||
+                        "S/ Cargo"}
+                    </p>
                     <div className="flex items-center gap-2 mt-1">
-                      <p className="text-[10px] text-gray-400 font-semibold">{obras.find(o => o.id === emp.obraId)?.nome || 'S/ Obra'}</p>
+                      <p className="text-[10px] text-[#475569] font-semibold">
+                        {obras.find((o) => o.id === emp.obraId)?.nome ||
+                          "S/ Obra"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 shrink-0">
-                    <button onClick={() => handleEdit(emp)} className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors">
+                    <button
+                      onClick={() => handleEdit(emp)}
+                      className="p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                    >
                       <Edit2 size={16} />
                     </button>
-                    <button onClick={() => handleDelete(emp.id)} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+                    <button
+                      onClick={() => handleDelete(emp.id)}
+                      className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                    >
                       <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
               ))}
               {employees.length === 0 && (
-                <div className="text-center text-gray-500 mt-10">
+                <div className="text-center text-[#64748B] mt-10">
                   Nenhum funcionário cadastrado.
                 </div>
               )}
@@ -237,16 +332,19 @@ export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-safe">
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 md:p-8 space-y-6">
-              
+            <div className="bg-[#152A32] rounded-3xl shadow-sm border border-[#253B44] p-5 md:p-8 space-y-6">
               {/* Image Upload Area */}
               <div className="flex flex-col items-center justify-center gap-3">
-                <div 
+                <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-28 h-28 bg-gray-100 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 relative overflow-hidden group cursor-pointer"
+                  className="w-28 h-28 bg-gray-100 rounded-full border-2 border-dashed border-[#36525E] flex items-center justify-center text-[#475569] relative overflow-hidden group cursor-pointer"
                 >
                   {formData.fotoUrl ? (
-                    <img src={formData.fotoUrl} alt="Preview" className="w-full h-full object-cover" />
+                    <img
+                      src={formData.fotoUrl}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
                   ) : (
                     <Camera size={32} />
                   )}
@@ -254,94 +352,178 @@ export function EmployeeManagement({ onBack }: EmployeeManagementProps) {
                     <Upload size={24} className="text-white" />
                   </div>
                 </div>
-                <p 
+                <p
                   onClick={() => fileInputRef.current?.click()}
-                  className="text-sm font-medium text-[#0B5C36] cursor-pointer hover:underline"
+                  className="text-sm font-medium text-[#FFA767] cursor-pointer hover:underline"
                 >
                   Adicionar foto (Câmera/Envio)
                 </p>
-                <input 
-                  type="file" 
-                  accept="image/*" 
+                <input
+                  type="file"
+                  accept="image/*"
                   ref={fileInputRef}
                   onChange={handleImageChange}
-                  className="hidden" 
+                  className="hidden"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700">Matrícula</label>
-                  <input type="text" name="matricula" value={formData.matricula || ''} onChange={handleChange} className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-[#0B5C36] outline-none" placeholder="Ex: 0001" />
+                  <label className="text-sm font-semibold text-[#CBD5E1]">
+                    Matrícula
+                  </label>
+                  <input
+                    type="text"
+                    name="matricula"
+                    value={formData.matricula || ""}
+                    onChange={handleChange}
+                    className="w-full border border-[#2C4550] rounded-xl p-3 focus:ring-2 focus:ring-[#FFA767] outline-none"
+                    placeholder="Ex: 0001"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700">Nome</label>
-                  <input type="text" name="nome" value={formData.nome || ''} onChange={handleChange} className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-[#0B5C36] outline-none" placeholder="Ex: Carlos Alberto" />
+                  <label className="text-sm font-semibold text-[#CBD5E1]">
+                    Nome
+                  </label>
+                  <input
+                    type="text"
+                    name="nome"
+                    value={formData.nome || ""}
+                    onChange={handleChange}
+                    className="w-full border border-[#2C4550] rounded-xl p-3 focus:ring-2 focus:ring-[#FFA767] outline-none"
+                    placeholder="Ex: Carlos Alberto"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700">Cargo</label>
-                  <select name="cargoId" value={formData.cargoId || ''} onChange={handleChange} className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-[#0B5C36] outline-none appearance-none cursor-pointer">
-                    <option value="" disabled>Selecione o cargo</option>
-                    {cargos.map(c => (
-                      <option key={c.id} value={c.id}>{c.titulo}</option>
+                  <label className="text-sm font-semibold text-[#CBD5E1]">
+                    Cargo
+                  </label>
+                  <select
+                    name="cargoId"
+                    value={formData.cargoId || ""}
+                    onChange={handleChange}
+                    className="w-full border border-[#2C4550] rounded-xl p-3 focus:ring-2 focus:ring-[#FFA767] outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>
+                      Selecione o cargo
+                    </option>
+                    {cargos.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.titulo}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700">Obra</label>
-                  <select name="obraId" value={formData.obraId || ''} onChange={handleChange} className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-[#0B5C36] outline-none appearance-none cursor-pointer">
-                    <option value="" disabled>Selecione a obra</option>
-                    {obras.map(o => (
-                      <option key={o.id} value={o.id}>{o.nome}</option>
+                  <label className="text-sm font-semibold text-[#CBD5E1]">
+                    Obra
+                  </label>
+                  <select
+                    name="obraId"
+                    value={formData.obraId || ""}
+                    onChange={handleChange}
+                    className="w-full border border-[#2C4550] rounded-xl p-3 focus:ring-2 focus:ring-[#FFA767] outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>
+                      Selecione a obra
+                    </option>
+                    {obras.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.nome}
+                      </option>
                     ))}
                   </select>
                 </div>
-                
+
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700">Status</label>
-                  <select name="status" value={formData.status || 'Ativo'} onChange={handleChange} className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-[#0B5C36] outline-none appearance-none cursor-pointer">
+                  <label className="text-sm font-semibold text-[#CBD5E1]">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    value={formData.status || "Ativo"}
+                    onChange={handleChange}
+                    className="w-full border border-[#2C4550] rounded-xl p-3 focus:ring-2 focus:ring-[#FFA767] outline-none appearance-none cursor-pointer"
+                  >
                     <option value="Ativo">Ativo</option>
                     <option value="Inativo">Inativo</option>
                   </select>
                 </div>
-                
+
                 {/* Tamanhos de Uniforme / EPI de Corpo */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700">Tamanho da Camisa</label>
-                  <select name="camisa" value={formData.camisa || ''} onChange={handleChange} className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-[#0B5C36] outline-none appearance-none cursor-pointer">
-                    <option value="" disabled>Selecione o tamanho</option>
-                    {tamanhosCamisa.map(t => (
-                      <option key={t} value={t}>{t}</option>
+                  <label className="text-sm font-semibold text-[#CBD5E1]">
+                    Tamanho da Camisa
+                  </label>
+                  <select
+                    name="camisa"
+                    value={formData.camisa || ""}
+                    onChange={handleChange}
+                    className="w-full border border-[#2C4550] rounded-xl p-3 focus:ring-2 focus:ring-[#FFA767] outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>
+                      Selecione o tamanho
+                    </option>
+                    {tamanhosCamisa.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700">Tamanho da Calça</label>
-                  <select name="calca" value={formData.calca || ''} onChange={handleChange} className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-[#0B5C36] outline-none appearance-none cursor-pointer">
-                    <option value="" disabled>Selecione o tamanho</option>
-                    {tamanhosCalca.map(t => (
-                      <option key={t} value={t}>{t}</option>
+                  <label className="text-sm font-semibold text-[#CBD5E1]">
+                    Tamanho da Calça
+                  </label>
+                  <select
+                    name="calca"
+                    value={formData.calca || ""}
+                    onChange={handleChange}
+                    className="w-full border border-[#2C4550] rounded-xl p-3 focus:ring-2 focus:ring-[#FFA767] outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>
+                      Selecione o tamanho
+                    </option>
+                    {tamanhosCalca.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700">Tamanho da Bota</label>
-                  <select name="bota" value={formData.bota || ''} onChange={handleChange} className="w-full border border-gray-200 rounded-xl p-3 focus:ring-2 focus:ring-[#0B5C36] outline-none appearance-none cursor-pointer">
-                    <option value="" disabled>Selecione o tamanho</option>
-                    {tamanhosBota.map(t => (
-                      <option key={t} value={t}>{t}</option>
+                  <label className="text-sm font-semibold text-[#CBD5E1]">
+                    Tamanho da Bota
+                  </label>
+                  <select
+                    name="bota"
+                    value={formData.bota || ""}
+                    onChange={handleChange}
+                    className="w-full border border-[#2C4550] rounded-xl p-3 focus:ring-2 focus:ring-[#FFA767] outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="" disabled>
+                      Selecione o tamanho
+                    </option>
+                    {tamanhosBota.map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
                     ))}
                   </select>
                 </div>
               </div>
 
               {submitError && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mt-4">
-                      {submitError}
-                  </div>
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mt-4">
+                  {submitError}
+                </div>
               )}
 
-              <button disabled={isSubmitting} onClick={handleSave} className="w-full bg-[#0B5C36] text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 shadow-md hover:bg-[#094d2d] transition-colors mt-4 disabled:opacity-50">
+              <button
+                disabled={isSubmitting}
+                onClick={handleSave}
+                className="w-full bg-[#FFA767] text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 shadow-md hover:bg-[#E08E55] transition-colors mt-4 disabled:opacity-50"
+              >
                 {isSubmitting ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

@@ -37,6 +37,15 @@ export default function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setAdminUser(null);
@@ -104,8 +113,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-4 border-[#0B5C36] border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen flex items-center justify-center bg-[#0D2027]">
+        <div className="w-8 h-8 border-4 border-[#FFA767] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -170,12 +179,12 @@ export default function App() {
   const showNav = ['home', 'delivery', 'catalog', 'reports', 'dashboard'].includes(currentView);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex font-sans text-gray-900 overflow-hidden w-full">
+    <div className="min-h-screen bg-[#0D2027] flex font-sans text-[#F1F5F9] overflow-hidden w-full">
       {/* Desktop Sidebar */}
       {showNav && (
-        <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-200 z-50">
+        <aside className="hidden md:flex flex-col w-64 bg-[#152A32] border-r border-[#2C4550] z-50">
           <div className="p-6">
-            <h1 className="text-2xl font-bold text-[#0B5C36]">EPI Manager</h1>
+            <h1 className="text-2xl font-bold text-[#FFA767]">EPI Manager</h1>
           </div>
           <nav className="flex-1 px-4 space-y-2 mt-4">
             {navItems.map((item) => {
@@ -186,18 +195,18 @@ export default function App() {
                   key={item.id}
                   onClick={() => setCurrentView(item.id)}
                   className={cn(
-                    "flex items-center gap-3 w-full px-4 py-3 rounded-xl font-medium transition-colors",
-                    isActive ? "bg-green-50 text-[#0B5C36]" : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                    "flex items-center gap-3 w-full px-4 py-3 rounded-xl font-bold transition-colors",
+                    isActive ? "bg-[#FFA767] text-white" : "text-[#94A3B8] hover:bg-gray-100/50 hover:text-[#F1F5F9]"
                   )}
                 >
                   <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                  <span>{item.label}</span>
+                  <span className="text-base">{item.label}</span>
                 </button>
               );
             })}
           </nav>
 
-          <div className="p-4 border-t border-gray-100 flex items-center justify-between">
+          <div className="p-4 border-t border-[#253B44] flex items-center justify-between">
             <div className="flex items-center gap-3 overflow-hidden">
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
                 {adminUser?.fotoUrl ? (
@@ -207,17 +216,17 @@ export default function App() {
                 )}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-bold text-gray-900 truncate">
+                <span className="text-sm font-bold text-[#F1F5F9] truncate">
                   {adminUser?.nomeFuncionario || 'Administrador'}
                 </span>
-                <span className="text-xs text-gray-500 truncate">
+                <span className="text-xs text-[#64748B] truncate">
                   {adminUser?.email}
                 </span>
               </div>
             </div>
             <button 
               onClick={() => auth.signOut()}
-              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+              className="p-2 text-[#475569] hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
               title="Sair"
             >
               <LogOut size={20} />
@@ -227,7 +236,7 @@ export default function App() {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col relative h-screen overflow-hidden bg-gray-50">
+      <div className="flex-1 flex flex-col relative h-screen overflow-hidden bg-[#0D2027]">
         <div className="flex-1 flex flex-col overflow-y-auto w-full">
            <div className={cn("flex-1 flex flex-col transition-all duration-300", showNav ? "max-md:pb-[80px]" : "")}>
               {renderView()}
@@ -236,7 +245,7 @@ export default function App() {
 
         {/* Mobile Bottom Navigation */}
         {showNav && (
-          <div className="md:hidden absolute bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 px-6 py-3 pb-safe shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+          <div className="md:hidden absolute bottom-0 left-0 right-0 z-50 bg-[#152A32] border-t border-[#253B44] px-6 py-3 pb-safe shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
             <div className="flex justify-between items-center">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -247,11 +256,11 @@ export default function App() {
                     onClick={() => setCurrentView(item.id)}
                     className={cn(
                       "flex flex-col items-center justify-center gap-1",
-                      isActive ? "text-[#0B5C36]" : "text-gray-400 hover:text-gray-600"
+                      isActive ? "text-[#FFA767] font-extrabold" : "text-[#64748B] hover:text-[#E2E8F0]"
                     )}
                   >
                     <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-                    <span className="text-[10px] font-medium">{item.label}</span>
+                    <span className="text-xs font-bold">{item.label}</span>
                   </button>
                 );
               })}

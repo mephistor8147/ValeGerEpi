@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Search } from 'lucide-react';
-import { cn } from '../lib/utils';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import React, { useState, useEffect } from "react";
+import { ChevronLeft, Search } from "lucide-react";
+import { cn } from "../lib/utils";
+import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 
 interface CatalogProps {
   onBack: () => void;
@@ -18,68 +18,95 @@ interface EpiItem {
 }
 
 export function Catalog({ onBack }: CatalogProps) {
-  const [activeCategory, setActiveCategory] = useState('Todas as categorias');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState("Todas as categorias");
+  const [searchQuery, setSearchQuery] = useState("");
   const [items, setItems] = useState<EpiItem[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, 'epis'));
-    const unsub = onSnapshot(q, (snapshot) => {
-      setItems(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as EpiItem)));
-    }, (error) => handleFirestoreError(error, OperationType.GET, 'epis'));
+    const q = query(collection(db, "epis"));
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        setItems(
+          snapshot.docs.map(
+            (doc) => ({ id: doc.id, ...doc.data() }) as EpiItem,
+          ),
+        );
+      },
+      (error) => handleFirestoreError(error, OperationType.GET, "epis"),
+    );
 
     return () => unsub();
   }, []);
 
   const categories = [
-    'Todas as categorias',
-    ...Array.from(new Set(items.map(item => item.categoria).filter(Boolean))).sort()
+    "Todas as categorias",
+    ...Array.from(
+      new Set(items.map((item) => item.categoria).filter(Boolean)),
+    ).sort(),
   ];
 
-  const filteredItems = items.filter(item => {
+  const filteredItems = items.filter((item) => {
     const searchLower = searchQuery.toLowerCase();
-    const matchesSearch = item.nome?.toLowerCase().includes(searchLower) || item.ca?.includes(searchLower);
-    const matchesCategory = activeCategory === 'Todas as categorias' || item.categoria === activeCategory;
+    const matchesSearch =
+      item.nome?.toLowerCase().includes(searchLower) ||
+      item.ca?.includes(searchLower);
+    const matchesCategory =
+      activeCategory === "Todas as categorias" ||
+      item.categoria === activeCategory;
     return matchesSearch && matchesCategory;
   });
 
   return (
-    <div className="flex flex-col flex-1 bg-gray-50 h-full">
+    <div className="flex flex-col flex-1 bg-[#0D2027] h-full">
       {/* Header */}
-      <div className="bg-[#0B5C36] px-4 pt-12 md:pt-8 pb-6 flex items-center md:justify-between text-white shrink-0 shadow-md">
-        <button onClick={onBack} className="p-2 -ml-2 md:hidden"><ChevronLeft size={24} /></button>
-        <div className="hidden md:block p-2 cursor-pointer" onClick={onBack}><ChevronLeft size={24} className="hover:text-gray-200 transition-colors" /></div>
-        <h1 className="text-xl md:text-2xl font-bold flex-1 text-center md:flex-none">Catálogo de EPIs</h1>
+      <div className="bg-[#152A32] px-6 pt-16 md:pt-12 pb-10 rounded-b-[40px] md:rounded-b-[50px] relative overflow-hidden bg-cover bg-center bg-no-repeat flex items-center md:justify-between text-white shrink-0 shadow-md"
+        style={{ backgroundImage: 'linear-gradient(to bottom right, rgba(13, 32, 39, 0.95) 0%, rgba(13, 32, 39, 0.7) 100%), url("https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=1200&q=80")' }}>
+        <button onClick={onBack} className="p-2 -ml-2 md:hidden">
+          <ChevronLeft size={24} />
+        </button>
+        <div className="hidden md:block p-2 cursor-pointer" onClick={onBack}>
+          <ChevronLeft
+            size={24}
+            className="hover:text-gray-200 transition-colors"
+          />
+        </div>
+        <h1 className="text-3xl md:text-4xl font-bold text-[#FFA767] tracking-tight drop-shadow-sm flex-1 text-center md:flex-none">
+          Catálogo de EPIs
+        </h1>
         <div className="w-8 md:hidden"></div>
       </div>
 
-      <div className="flex flex-col flex-1 overflow-hidden max-w-7xl mx-auto w-full border-x border-gray-100 bg-white">
+      <div className="flex flex-col flex-1 overflow-hidden max-w-7xl mx-auto w-full border-x border-[#253B44] bg-[#152A32]">
         {/* Search */}
-        <div className="p-4 md:p-6 shrink-0 bg-white border-b border-gray-100">
+        <div className="p-4 md:p-6 shrink-0 bg-[#152A32] border-b border-[#253B44]">
           <div className="relative max-w-lg mx-auto md:mx-0 w-full">
-            <Search size={22} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input 
-              type="text" 
+            <Search
+              size={22}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-[#475569]"
+            />
+            <input
+              type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar EPI..." 
-              className="w-full bg-gray-50 border border-gray-200 rounded-full py-3.5 pl-12 pr-4 text-base focus:ring-2 focus:ring-[#0B5C36] outline-none transition-colors focus:bg-white"
+              placeholder="Buscar EPI..."
+              className="w-full bg-[#0D2027] border border-[#2C4550] rounded-full py-3.5 pl-12 pr-4 text-base focus:ring-2 focus:ring-[#FFA767] outline-none transition-colors focus:bg-[#152A32]"
             />
           </div>
         </div>
 
         <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
           {/* Sidebar Categories */}
-          <div className="md:w-64 bg-gray-50 overflow-x-auto md:overflow-y-auto border-b md:border-b-0 md:border-r border-gray-100 flex md:flex-col shrink-0 scrollbar-hide py-2 md:py-4">
+          <div className="md:w-64 bg-[#0D2027] overflow-x-auto md:overflow-y-auto border-b md:border-b-0 md:border-r border-[#253B44] flex md:flex-col shrink-0 scrollbar-hide py-2 md:py-4">
             {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
                 className={cn(
-                  "px-4 py-3 md:py-4 text-sm md:text-base font-medium transition-colors whitespace-nowrap text-left border-b-2 md:border-b-0 md:border-l-4",
-                  activeCategory === cat 
-                    ? "text-[#0B5C36] border-[#0B5C36] bg-green-50/50" 
-                    : "text-gray-500 border-transparent hover:bg-gray-100"
+                  "px-4 py-3 md:py-4 text-base md:text-lg font-bold transition-colors whitespace-nowrap text-left border-b-2 md:border-b-0 md:border-l-4",
+                  activeCategory === cat
+                    ? "text-[#FFA767] border-[#FFA767] bg-[#0D2027]"
+                    : "text-[#64748B] border-transparent hover:text-[#E2E8F0] hover:bg-gray-100",
                 )}
               >
                 {cat}
@@ -88,34 +115,61 @@ export function Catalog({ onBack }: CatalogProps) {
           </div>
 
           {/* List Items */}
-          <div className="flex-1 bg-white overflow-y-auto p-4 md:p-8 pb-safe pb-24">
-            <h2 className="text-xl font-bold text-gray-800 mb-6 hidden md:block">{activeCategory}</h2>
+          <div className="flex-1 bg-[#152A32] overflow-y-auto p-4 md:p-8 pb-safe pb-24">
+            <h2 className="text-xl font-bold text-[#E2E8F0] mb-6 hidden md:block">
+              {activeCategory}
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {filteredItems.map((item, idx) => (
-                <div key={item.id || idx} className="flex flex-row md:flex-col gap-4 items-center md:items-start border border-gray-100 md:border-gray-200 bg-white p-4 rounded-xl md:rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <div className="w-16 h-16 md:w-full md:h-48 rounded-lg md:rounded-xl bg-gray-50 flex items-center justify-center p-2 shrink-0 border border-gray-100 overflow-hidden">
+                <div
+                  key={item.id || idx}
+                  className="flex flex-row md:flex-col gap-4 items-center md:items-start border border-[#253B44] md:border-[#2C4550] bg-[#152A32] p-4 rounded-xl md:rounded-2xl shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="w-16 h-16 md:w-full md:h-48 rounded-lg md:rounded-xl bg-[#0D2027] flex items-center justify-center p-2 shrink-0 border border-[#253B44] overflow-hidden">
                     {item.fotoUrl ? (
-                      <img src={item.fotoUrl} alt={item.nome} className="w-full h-full object-cover rounded-lg" />
+                      <img
+                        src={item.fotoUrl}
+                        alt={item.nome}
+                        className="w-full h-full object-cover rounded-lg"
+                      />
                     ) : (
                       <span className="text-3xl md:text-6xl">🧰</span>
                     )}
                   </div>
                   <div className="flex-1 w-full flex flex-col justify-center">
-                    <h4 className="font-bold text-gray-800 text-base md:text-lg mb-1 line-clamp-2 md:line-clamp-1" title={item.nome}>{item.nome}</h4>
+                    <h4
+                      className="font-bold text-[#E2E8F0] text-base md:text-lg mb-1 line-clamp-2 md:line-clamp-1"
+                      title={item.nome}
+                    >
+                      {item.nome}
+                    </h4>
                     <div className="flex flex-col md:flex-row md:justify-between md:items-start md:items-center gap-1 mt-1 md:mt-2">
-                      <p className="text-sm text-gray-500 font-medium">CA: {item.ca || 'N/A'}</p>
-                      <p className={cn("text-xs md:text-sm font-bold px-2 py-1 rounded-md max-w-fit md:-ml-1", item.quantidade > 0 ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700")}>
-                        {item.quantidade > 0 ? `Estoque: ${item.quantidade}` : 'Sem Estoque'}
+                      <p className="text-sm text-[#64748B] font-medium">
+                        CA: {item.ca || "N/A"}
+                      </p>
+                      <p
+                        className={cn(
+                          "text-xs md:text-sm font-bold px-2 py-1 rounded-md max-w-fit md:-ml-1",
+                          item.quantidade > 0
+                            ? "bg-[#152A32] text-green-700"
+                            : "bg-red-50 text-red-700",
+                        )}
+                      >
+                        {item.quantidade > 0
+                          ? `Estoque: ${item.quantidade}`
+                          : "Sem Estoque"}
                       </p>
                     </div>
                   </div>
                 </div>
               ))}
-              
+
               {filteredItems.length === 0 && (
-                <div className="col-span-full py-12 text-center flex flex-col items-center justify-center text-gray-400">
-                    <span className="text-4xl mb-4">📭</span>
-                    <p className="text-sm md:text-base">Nenhum EPI encontrado nesta categoria.</p>
+                <div className="col-span-full py-12 text-center flex flex-col items-center justify-center text-[#475569]">
+                  <span className="text-4xl mb-4">📭</span>
+                  <p className="text-sm md:text-base">
+                    Nenhum EPI encontrado nesta categoria.
+                  </p>
                 </div>
               )}
             </div>
@@ -125,4 +179,3 @@ export function Catalog({ onBack }: CatalogProps) {
     </div>
   );
 }
-

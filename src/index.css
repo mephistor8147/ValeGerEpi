@@ -1,1 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --color-white: #ffffff;
+  --color-gray-50: var(--theme-bg-secondary);
+  --color-gray-100: var(--theme-border-lite);
+  --color-gray-200: var(--theme-border);
+  --color-gray-300: var(--theme-border-strong);
+  --color-gray-400: var(--theme-text-muted);
+  --color-gray-500: var(--theme-text-secondary);
+  --color-gray-600: var(--theme-text-primary);
+  --color-gray-700: var(--theme-text-strong);
+  --color-gray-800: var(--theme-text-heavy);
+  --color-gray-900: var(--theme-text-heavy);
+  --color-black: var(--theme-text-heavy);
+}
+
+:root {
+  /* Dark mode as default */
+  --theme-bg-primary: #121212;
+  --theme-bg-secondary: #1e1e1e;
+  --theme-border-lite: #292929;
+  --theme-border: #333333;
+  --theme-border-strong: #404040;
+  --theme-text-muted: #888888;
+  --theme-text-secondary: #a0a0a0;
+  --theme-text-primary: #d1d5db;
+  --theme-text-strong: #f3f4f6;
+  --theme-text-heavy: #ffffff;
+}
+
+:root.light {
+  /* Light mode */
+  --theme-bg-primary: #ffffff;
+  --theme-bg-secondary: #f9fafb;
+  --theme-border-lite: #f3f4f6;
+  --theme-border: #e5e7eb;
+  --theme-border-strong: #d1d5db;
+  --theme-text-muted: #9ca3af;
+  --theme-text-secondary: #6b7280;
+  --theme-text-primary: #4b5563;
+  --theme-text-strong: #374151;
+  --theme-text-heavy: #1f2937;
+}
+
+/* Ensure printing is always light/bw */
+@media print {
+  :root, :root.dark, :root.light {
+    --theme-bg-primary: #ffffff !important;
+    --theme-bg-secondary: #ffffff !important;
+    --theme-border-lite: #000000 !important;
+    --theme-border: #000000 !important;
+    --theme-border-strong: #000000 !important;
+    --theme-text-muted: #000000 !important;
+    --theme-text-secondary: #000000 !important;
+    --theme-text-primary: #000000 !important;
+    --theme-text-strong: #000000 !important;
+    --theme-text-heavy: #000000 !important;
+  }
+}
+
+body {
+  background-color: var(--theme-bg-primary);
+  color: var(--theme-text-heavy);
+}
