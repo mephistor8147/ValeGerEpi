@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Plus, Edit2, Trash2, ArrowDownLeft, X } from "lucide-react";
 import { cn } from "../lib/utils";
 import {
   doc,
@@ -8,6 +8,9 @@ import {
   query,
   where,
   getDocs,
+  addDoc,
+  updateDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
@@ -29,6 +32,104 @@ export function EmployeeDetails({
   const [entregasHistory, setEntregasHistory] = useState<any[]>([]);
   const [obra, setObra] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [availableEpis, setAvailableEpis] = useState<any[]>([]);
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [selectedEntrega, setSelectedEntrega] = useState<any>(null);
+
+  const [deliveryForm, setDeliveryForm] = useState({
+    codigoEpi: "",
+    dataEntrega: new Date().toISOString().split("T")[0],
+    ca: "",
+    quantidade: 1,
+    observacoes: "",
+  });
+
+  const [editForm, setEditForm] = useState({
+    dataEntrega: "",
+    ca: "",
+    quantidade: 1,
+    observacoes: "",
+  });
+
+  const [returnForm, setReturnForm] = useState({
+    dataDevolucao: new Date().toISOString().split("T")[0],
+    motivoDevolucao: "",
+  });
+
+  const handleCreateDelivery = async () => {
+    if (!deliveryForm.codigoEpi || !deliveryForm.dataEntrega) return;
+    try {
+      const adminUserStr = localStorage.getItem("adminUser");
+      const adminUser = adminUserStr ? JSON.parse(adminUserStr) : null;
+      await addDoc(collection(db, "entregas"), {
+        funcionarioId: employeeId,
+        codigoEpi: deliveryForm.codigoEpi,
+        quantidade: deliveryForm.quantidade || 1,
+        ca: deliveryForm.ca || "N/A",
+        dataEntrega: deliveryForm.dataEntrega,
+        observacoes: deliveryForm.observacoes,
+        createdAt: Date.now(),
+        adminResponsavelId: adminUser?.id || null,
+        adminResponsavelNome: adminUser?.nomeFuncionario || "Desconhecido",
+      });
+      setShowDeliveryModal(false);
+      setRefreshKey(k => k + 1);
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao salvar entrega.");
+    }
+  };
+
+  const handleEditDelivery = async () => {
+    if (!selectedEntrega || !editForm.dataEntrega) return;
+    try {
+      await updateDoc(doc(db, "entregas", selectedEntrega.id), {
+        dataEntrega: editForm.dataEntrega,
+        ca: editForm.ca,
+        quantidade: editForm.quantidade,
+        observacoes: editForm.observacoes,
+      });
+      setShowEditModal(false);
+      setRefreshKey(k => k + 1);
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao editar.");
+    }
+  };
+
+  const handleReturnDelivery = async () => {
+    if (!selectedEntrega || !returnForm.dataDevolucao) return;
+    try {
+      const adminUserStr = localStorage.getItem("adminUser");
+      const adminUser = adminUserStr ? JSON.parse(adminUserStr) : null;
+      await updateDoc(doc(db, "entregas", selectedEntrega.id), {
+        dataDevolucao: returnForm.dataDevolucao,
+        motivoDevolucao: returnForm.motivoDevolucao,
+        adminResponsavelDevolucaoId: adminUser?.id || null,
+        adminResponsavelNomeDevolucao: adminUser?.nomeFuncionario || "Desconhecido",
+      });
+      setShowReturnModal(false);
+      setRefreshKey(k => k + 1);
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao devolver.");
+    }
+  };
+
+  const handleDeleteDelivery = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este registro?")) return;
+    try {
+      await deleteDoc(doc(db, "entregas", id));
+      setRefreshKey(k => k + 1);
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao excluir.");
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -64,10 +165,13 @@ export function EmployeeDetails({
           const episQ = query(collection(db, "epis"));
           const episSnap = await getDocs(episQ);
           const episMap = new Map();
+          const episListFull: any[] = [];
           episSnap.docs.forEach((d) => {
             const data = d.data();
+            episListFull.push({ id: d.id, ...data });
             if (data.nome) episMap.set(data.nome, data.fotoUrl);
           });
+          setAvailableEpis(episListFull);
 
           // Fetch entregas for this employee
           const entregasQ = query(
@@ -112,7 +216,7 @@ export function EmployeeDetails({
     };
 
     fetchData();
-  }, [employeeId]);
+  }, [employeeId, refreshKey]);
 
   if (loading) {
     return (
@@ -242,12 +346,21 @@ export function EmployeeDetails({
           {activeTab === "EPIs" && (
             <div className="max-w-3xl mx-auto w-full">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-bold text-[#E2E8F0] text-lg md:text-xl">
-                  EPIs em uso
-                </h3>
-                <span className="text-sm text-[#64748B] font-medium">
-                  {assignedEpis.length} itens
-                </span>
+                <div className="flex flex-col gap-1">
+                  <h3 className="font-bold text-[#E2E8F0] text-lg md:text-xl">
+                    EPIs em uso
+                  </h3>
+                  <span className="text-sm text-[#64748B] font-medium">
+                    {assignedEpis.length} itens
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowDeliveryModal(true)}
+                  className="bg-[#FFA767] hover:bg-[#ffb580] text-[#0D2027] px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors"
+                >
+                  <Plus size={20} />
+                  Nova Entrega
+                </button>
               </div>
               <div className="space-y-4">
                 {assignedEpis.map((epi, idx) => (
@@ -278,8 +391,20 @@ export function EmployeeDetails({
                         </p>
                       </div>
                     </div>
-                    <div className="flex sm:flex-col gap-6 sm:gap-2 justify-between items-start sm:items-end mt-2 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-0 border-gray-50">
-                      <div className="sm:text-right">
+                    <div className="flex sm:flex-col gap-6 sm:gap-2 justify-between items-start sm:items-end mt-2 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-0 border-[#253B44]">
+                      <div className="flex gap-2 mb-2">
+                        <button onClick={() => { setSelectedEntrega(epi); setReturnForm({ ...returnForm, motivoDevolucao: "" }); setShowReturnModal(true); }} className="p-2 text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors" title="Devolver" >
+                          <ArrowDownLeft size={20} />
+                        </button>
+                        <button onClick={() => { setSelectedEntrega(epi); setEditForm({ dataEntrega: epi.delivery, ca: epi.ca, quantidade: epi.quantidade || 1, observacoes: epi.observacoes || "" }); setShowEditModal(true); }} className="p-2 text-[#CBD5E1] hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Editar" >
+                          <Edit2 size={20} />
+                        </button>
+                        <button onClick={() => handleDeleteDelivery(epi.id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Excluir" >
+                          <Trash2 size={20} />
+                        </button>
+                      </div>
+                      <div className="flex gap-6 sm:gap-4">
+                        <div className="sm:text-right">
                         <p className="text-[11px] text-[#475569] uppercase font-bold tracking-wider mb-0.5">
                           Data de Entrega
                         </p>
@@ -294,6 +419,7 @@ export function EmployeeDetails({
                         <p className="text-sm text-[#FFA767] font-bold">
                           {epi.valid}
                         </p>
+                      </div>
                       </div>
                     </div>
                   </div>
@@ -370,12 +496,21 @@ export function EmployeeDetails({
           {activeTab === "Histórico" && (
             <div className="max-w-3xl mx-auto w-full">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-bold text-[#E2E8F0] text-lg md:text-xl">
-                  Histórico de Movimentações
-                </h3>
-                <span className="text-sm text-[#64748B] font-medium">
-                  {entregasHistory.length} registros
-                </span>
+                <div className="flex flex-col gap-1">
+                  <h3 className="font-bold text-[#E2E8F0] text-lg md:text-xl">
+                    Histórico de Movimentações
+                  </h3>
+                  <span className="text-sm text-[#64748B] font-medium">
+                    {entregasHistory.length} registros
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowDeliveryModal(true)}
+                  className="bg-[#FFA767] hover:bg-[#ffb580] text-[#0D2027] px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors"
+                >
+                  <Plus size={20} />
+                  Nova Entrega
+                </button>
               </div>
 
               <div className="space-y-4">
@@ -404,16 +539,26 @@ export function EmployeeDetails({
                             </p>
                           </div>
                         </div>
-                        <span
-                          className={cn(
-                            "px-3 py-1 rounded-full text-xs font-bold",
-                            entrega.dataDevolucao
-                              ? "bg-gray-100 text-[#94A3B8]"
-                              : "bg-[#253B44] text-green-700",
-                          )}
-                        >
-                          {entrega.dataDevolucao ? "Devolvido" : "Em uso"}
-                        </span>
+                        <div className="flex items-center gap-3">
+                          <span
+                            className={cn(
+                              "px-3 py-1 rounded-full text-xs font-bold",
+                              entrega.dataDevolucao
+                                ? "bg-gray-100 text-[#94A3B8]"
+                                : "bg-[#253B44] text-green-700",
+                            )}
+                          >
+                            {entrega.dataDevolucao ? "Devolvido" : "Em uso"}
+                          </span>
+                          <div className="flex gap-1">
+                            <button onClick={() => { setSelectedEntrega(entrega); setEditForm({ dataEntrega: entrega.dataEntrega, ca: entrega.ca, quantidade: entrega.quantidade || 1, observacoes: entrega.observacoes || "" }); setShowEditModal(true); }} className="p-2 text-[#CBD5E1] hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Editar" >
+                              <Edit2 size={16} />
+                            </button>
+                            <button onClick={() => handleDeleteDelivery(entrega.id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Excluir" >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-50">
@@ -470,6 +615,117 @@ export function EmployeeDetails({
           )}
         </div>
       </div>
+
+      {/* ADD/EDIT/RETURN MODALS */}
+      {showDeliveryModal && (
+        <div className="fixed inset-0 bg-black/60 z-[99] flex items-center justify-center p-4">
+          <div className="bg-[#152A32] rounded-2xl w-full max-w-md overflow-hidden flex flex-col border border-[#253B44]">
+            <div className="p-4 border-b border-[#253B44] flex items-center justify-between">
+              <h3 className="font-bold text-lg text-white">Nova Entrega</h3>
+              <button onClick={() => setShowDeliveryModal(false)} className="text-gray-400 hover:text-white">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">EPI</label>
+                <select className="w-full bg-[#0D2027] border border-[#253B44] rounded-lg p-3 text-white" value={deliveryForm.codigoEpi} onChange={e => {
+                  const epi = availableEpis.find(ep => ep.nome === e.target.value);
+                  setDeliveryForm({...deliveryForm, codigoEpi: e.target.value, ca: epi?.ca || ""});
+                }}>
+                  <option value="">Selecione um EPI</option>
+                  {availableEpis.map(e => <option key={e.id} value={e.nome}>{e.nome}</option>)}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Qtd</label>
+                  <input type="number" min="1" className="w-full bg-[#0D2027] border border-[#253B44] rounded-lg p-3 text-white" value={deliveryForm.quantidade} onChange={e => setDeliveryForm({...deliveryForm, quantidade: Number(e.target.value)})} />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Data</label>
+                  <input type="date" className="w-full bg-[#0D2027] border border-[#253B44] rounded-lg p-3 text-white" value={deliveryForm.dataEntrega} onChange={e => setDeliveryForm({...deliveryForm, dataEntrega: e.target.value})} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">CA</label>
+                <input type="text" className="w-full bg-[#0D2027] border border-[#253B44] rounded-lg p-3 text-white" value={deliveryForm.ca} onChange={e => setDeliveryForm({...deliveryForm, ca: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Observações</label>
+                <textarea className="w-full bg-[#0D2027] border border-[#253B44] rounded-lg p-3 text-white h-20" value={deliveryForm.observacoes} onChange={e => setDeliveryForm({...deliveryForm, observacoes: e.target.value})}></textarea>
+              </div>
+              <button onClick={handleCreateDelivery} className="w-full bg-[#FFA767] text-[#0D2027] font-bold py-3 rounded-xl mt-4">Confirmar Entrega</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEditModal && selectedEntrega && (
+        <div className="fixed inset-0 bg-black/60 z-[99] flex items-center justify-center p-4">
+          <div className="bg-[#152A32] rounded-2xl w-full max-w-md overflow-hidden flex flex-col border border-[#253B44]">
+            <div className="p-4 border-b border-[#253B44] flex items-center justify-between">
+              <h3 className="font-bold text-lg text-white">Editar Registro</h3>
+              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-white">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Qtd</label>
+                  <input type="number" min="1" className="w-full bg-[#0D2027] border border-[#253B44] rounded-lg p-3 text-white" value={editForm.quantidade} onChange={e => setEditForm({...editForm, quantidade: Number(e.target.value)})} />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Data</label>
+                  <input type="date" className="w-full bg-[#0D2027] border border-[#253B44] rounded-lg p-3 text-white" value={editForm.dataEntrega} onChange={e => setEditForm({...editForm, dataEntrega: e.target.value})} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">CA</label>
+                <input type="text" className="w-full bg-[#0D2027] border border-[#253B44] rounded-lg p-3 text-white" value={editForm.ca} onChange={e => setEditForm({...editForm, ca: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Observações</label>
+                <textarea className="w-full bg-[#0D2027] border border-[#253B44] rounded-lg p-3 text-white h-20" value={editForm.observacoes} onChange={e => setEditForm({...editForm, observacoes: e.target.value})}></textarea>
+              </div>
+              <button onClick={handleEditDelivery} className="w-full bg-[#FFA767] text-[#0D2027] font-bold py-3 rounded-xl mt-4">Salvar Alterações</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReturnModal && selectedEntrega && (
+        <div className="fixed inset-0 bg-black/60 z-[99] flex items-center justify-center p-4">
+          <div className="bg-[#152A32] rounded-2xl w-full max-w-md overflow-hidden flex flex-col border border-[#253B44]">
+            <div className="p-4 border-b border-[#253B44] flex items-center justify-between">
+              <h3 className="font-bold text-lg text-white">Devolver EPI</h3>
+              <button onClick={() => setShowReturnModal(false)} className="text-gray-400 hover:text-white">
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Data de Devolução</label>
+                <input type="date" className="w-full bg-[#0D2027] border border-[#253B44] rounded-lg p-3 text-white" value={returnForm.dataDevolucao} onChange={e => setReturnForm({...returnForm, dataDevolucao: e.target.value})} />
+              </div>
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Motivo / Condição</label>
+                <select className="w-full bg-[#0D2027] border border-[#253B44] rounded-lg p-3 text-white" value={returnForm.motivoDevolucao} onChange={e => setReturnForm({...returnForm, motivoDevolucao: e.target.value})}>
+                  <option value="">Selecione um motivo...</option>
+                  <option value="Desligamento">Desligamento do funcionário</option>
+                  <option value="Troca por desgaste">Troca por desgaste normal</option>
+                  <option value="Troca por dano">Troca por dano / quebra</option>
+                  <option value="Perda">Aviso de perda</option>
+                  <option value="Fim de validade">Fim de validade do CA</option>
+                  <option value="Outro">Outro</option>
+                </select>
+              </div>
+              <button onClick={handleReturnDelivery} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl mt-4 transition-colors">Confirmar Devolução</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

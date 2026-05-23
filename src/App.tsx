@@ -113,7 +113,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0D2027]">
+      <div className="min-h-[100dvh] flex items-center justify-center bg-[#0D2027]">
         <div className="w-8 h-8 border-4 border-[#FFA767] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
@@ -179,7 +179,7 @@ export default function App() {
   const showNav = ['home', 'delivery', 'catalog', 'reports', 'dashboard'].includes(currentView);
 
   return (
-    <div className="min-h-screen bg-[#0D2027] flex font-sans text-[#F1F5F9] overflow-hidden w-full">
+    <div className="min-h-[100dvh] bg-[#0D2027] flex font-sans text-[#F1F5F9] overflow-hidden w-full">
       {/* Desktop Sidebar */}
       {showNav && (
         <aside className="hidden md:flex flex-col w-64 bg-[#152A32] border-r border-[#2C4550] z-50">
@@ -236,7 +236,7 @@ export default function App() {
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col relative h-screen overflow-hidden bg-[#0D2027]">
+      <div className="flex-1 flex flex-col relative h-[100dvh] overflow-hidden bg-[#0D2027]">
         <div className="flex-1 flex flex-col overflow-y-auto w-full">
            <div className={cn("flex-1 flex flex-col transition-all duration-300", showNav ? "max-md:pb-[80px]" : "")}>
               {renderView()}

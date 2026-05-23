@@ -189,7 +189,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0D2027] flex flex-col justify-center items-center p-4">
+    <div className="min-h-[100dvh] bg-[#0D2027] flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md bg-[#152A32] rounded-3xl shadow-xl overflow-hidden border border-[#253B44]">
         <div className="bg-[#FFA767] p-8 text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 -trate-y-1/2 translate-x-1/2 w-48 h-48 bg-[#152A32] rounded-full blur-2xl"></div>
