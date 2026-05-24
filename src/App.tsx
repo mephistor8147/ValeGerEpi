@@ -35,6 +35,27 @@ export default function App() {
   const [adminUser, setAdminUser] = useState<any>(null);
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const handleFocusIn = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+        setIsKeyboardOpen(true);
+      }
+    };
+    const handleFocusOut = () => {
+      setIsKeyboardOpen(false);
+    };
+
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusOut);
+    };
+  }, []);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -196,7 +217,7 @@ export default function App() {
                   onClick={() => setCurrentView(item.id)}
                   className={cn(
                     "flex items-center gap-3 w-full px-4 py-3 rounded-xl font-bold transition-colors",
-                    isActive ? "bg-[#FFA767] text-white" : "text-[#94A3B8] hover:bg-gray-100/50 hover:text-[#F1F5F9]"
+                    isActive ? "bg-[#FFA767] text-white" : "text-[#94A3B8] hover:bg-[#253B44] hover:text-[#F1F5F9]"
                   )}
                 >
                   <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
@@ -244,8 +265,8 @@ export default function App() {
         </div>
 
         {/* Mobile Bottom Navigation */}
-        {showNav && (
-          <div className="md:hidden absolute bottom-0 left-0 right-0 z-50 bg-[#152A32] border-t border-[#253B44] px-6 py-3 pb-safe shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
+        {showNav && !isKeyboardOpen && (
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#152A32] border-t border-[#253B44] px-6 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
             <div className="flex justify-between items-center">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -255,12 +276,12 @@ export default function App() {
                     key={item.id}
                     onClick={() => setCurrentView(item.id)}
                     className={cn(
-                      "flex flex-col items-center justify-center gap-1",
+                      "flex flex-1 flex-col items-center justify-center gap-1",
                       isActive ? "text-[#FFA767] font-extrabold" : "text-[#64748B] hover:text-[#E2E8F0]"
                     )}
                   >
                     <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-                    <span className="text-xs font-bold">{item.label}</span>
+                    <span className="text-xs font-bold truncate max-w-full px-1">{item.label}</span>
                   </button>
                 );
               })}
