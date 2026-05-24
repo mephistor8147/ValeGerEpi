@@ -123,7 +123,7 @@ export function Home({ onNavigate, adminUser }: HomeProps) {
                   {adminUser?.nomeFuncionario?.split(" ")[0] || "Carlos"}
                 </span>
               </h1>
-              <p className="text-gray-300 text-sm md:text-base font-medium mt-1">
+              <p className="text-[#F1F5F9] text-base md:text-lg font-semibold mt-2 drop-shadow-md">
                 Bem-vindo ao sistema de gerenciamento de EPIs.
               </p>
             </div>
