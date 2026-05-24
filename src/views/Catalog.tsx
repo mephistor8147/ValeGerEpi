@@ -1,8 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { ChevronLeft, Search } from "lucide-react";
+import { ChevronLeft, Search, Tag, HardHat, Glasses, Ear, Shirt, Hand, Footprints, Layers, Shield } from "lucide-react";
 import { cn } from "../lib/utils";
 import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
+
+const getCategoryIcon = (categoryName: string) => {
+  const norm = categoryName.toLowerCase();
+  if (norm === "todas as categorias") return Layers;
+  if (norm.includes("cabeça") || norm.includes("capacete")) return HardHat;
+  if (norm.includes("visual") || norm.includes("óculos") || norm.includes("oculos") || norm.includes("face")) return Glasses;
+  if (norm.includes("auditiva") || norm.includes("auricular") || norm.includes("ouvido")) return Ear;
+  if (norm.includes("mão") || norm.includes("mao") || norm.includes("luva")) return Hand;
+  if (norm.includes("pé") || norm.includes("pe") || norm.includes("calçado") || norm.includes("bota")) return Footprints;
+  if (norm.includes("corpo") || norm.includes("vestimenta") || norm.includes("uniforme") || norm.includes("tronco")) return Shirt;
+  if (norm.includes("queda") || norm.includes("cinto")) return Shield; // Fallback for some categories
+  if (norm.includes("respiratória") || norm.includes("respirador") || norm.includes("máscara")) return Shield;
+  return Tag;
+};
 
 interface CatalogProps {
   onBack: () => void;
@@ -95,23 +109,36 @@ export function Catalog({ onBack }: CatalogProps) {
           </div>
         </div>
 
-        <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
-          {/* Sidebar Categories */}
-          <div className="md:w-64 bg-[#0D2027] overflow-x-auto md:overflow-y-auto border-b md:border-b-0 md:border-r border-[#253B44] flex md:flex-col shrink-0 scrollbar-hide py-2 md:py-4">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={cn(
-                  "px-4 py-3 md:py-4 text-base md:text-lg font-bold transition-colors whitespace-nowrap text-left border-b-2 md:border-b-0 md:border-l-4",
-                  activeCategory === cat
-                    ? "text-[#FFA767] border-[#FFA767] bg-[#0D2027]"
-                    : "text-[#64748B] border-transparent hover:text-[#E2E8F0] hover:bg-gray-100",
-                )}
-              >
-                {cat}
-              </button>
-            ))}
+        <div className="flex flex-1 overflow-hidden flex-col">
+          {/* Categories Menu */}
+          <div className="bg-[#0D2027] overflow-x-auto border-b border-[#253B44] shrink-0 scrollbar-hide">
+            <div className="flex gap-4 md:gap-6 px-4 md:px-6 py-5 md:py-6 w-max">
+              {categories.map((cat) => {
+                const CatIcon = getCategoryIcon(cat);
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className="flex flex-col items-center justify-start gap-2 md:gap-3 group shrink-0 w-[72px] md:w-[88px]"
+                  >
+                    <div className={cn(
+                      "w-16 h-16 md:w-20 md:h-20 rounded-2xl md:rounded-3xl shadow-sm border transition-all flex items-center justify-center mb-1 group-hover:scale-105",
+                      activeCategory === cat
+                        ? "bg-[#FFA767] border-[#FFA767] text-[#152A32] shadow-md"
+                        : "bg-[#152A32] border-[#253B44] text-[#FFA767] hover:bg-[#1A333E] hover:shadow-md"
+                    )}>
+                      <CatIcon className="w-7 h-7 md:w-8 md:h-8" strokeWidth={activeCategory === cat ? 2 : 1.5} />
+                    </div>
+                    <span className={cn(
+                      "text-xs md:text-sm font-bold text-center leading-tight px-1 transition-colors w-full whitespace-normal line-clamp-2",
+                      activeCategory === cat ? "text-[#FFA767]" : "text-[#E2E8F0] group-hover:text-[#FFA767]"
+                    )}>
+                      {cat}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* List Items */}

@@ -181,7 +181,13 @@ export function Login({ onLoginSuccess }: LoginProps) {
       await processAdminLogin(userCred.user);
     } catch (err: any) {
       console.error(err);
-      setError("Erro ao autenticar com Google ou permissão negada.");
+      let errorMessage = "Erro ao autenticar com Google ou permissão negada.";
+      if (err.code === 'auth/unauthorized-domain') {
+        errorMessage = `Domínio não autorizado: Adicione ${window.location.hostname} no painel de autenticação do Firebase.`;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
       auth.signOut();
     } finally {
       setLoading(false);
