@@ -113,7 +113,8 @@ export function Catalog({ onBack }: CatalogProps) {
           {/* Categories Menu */}
           <div className="bg-[#0D2027] overflow-x-auto border-b border-[#253B44] shrink-0 scrollbar-hide">
             <div className="flex gap-4 md:gap-6 px-4 md:px-6 py-5 md:py-6 w-max">
-              {categories.map((cat) => {
+              {categories.map((catValue) => {
+                const cat = catValue as string;
                 const CatIcon = getCategoryIcon(cat);
                 return (
                   <button

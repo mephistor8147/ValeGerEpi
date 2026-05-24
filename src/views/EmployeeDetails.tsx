@@ -366,9 +366,9 @@ export function EmployeeDetails({
                 {assignedEpis.map((epi, idx) => (
                   <div
                     key={idx}
-                    className="bg-[#152A32] p-5 md:p-6 rounded-2xl shadow-sm border border-[#253B44] flex flex-col sm:flex-row sm:items-center gap-4 hover:shadow-md transition-shadow"
+                    className="bg-[#152A32] p-4 md:p-6 rounded-2xl shadow-sm border border-[#253B44] flex flex-col gap-4 hover:shadow-md transition-shadow"
                   >
-                    <div className="flex items-center gap-4 flex-1">
+                    <div className="flex items-start md:items-center gap-4">
                       <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl bg-[#0D2027] flex items-center justify-center p-2 shrink-0 border border-[#253B44] overflow-hidden">
                         {epi.fotoUrl ? (
                           <img src={epi.fotoUrl} alt={epi.name} className="w-full h-full object-cover rounded-lg" />
@@ -376,9 +376,9 @@ export function EmployeeDetails({
                           <span className="text-3xl md:text-4xl">🧰</span>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 pr-2">
                         <h4
-                          className="font-bold text-[#E2E8F0] text-base md:text-lg mb-1"
+                          className="font-bold text-[#E2E8F0] text-base md:text-lg mb-1 leading-tight"
                           style={{ wordBreak: "break-word" }}
                         >
                           {epi.name}
@@ -386,40 +386,41 @@ export function EmployeeDetails({
                         <p className="text-sm text-[#64748B] font-medium">
                           CA: {epi.ca}
                         </p>
-                        <p className="text-xs text-[#475569] mt-1">
+                        <p className="text-xs text-[#475569] mt-1 line-clamp-1">
                           Por: {epi.adminResponsavelNome}
                         </p>
                       </div>
                     </div>
-                    <div className="flex sm:flex-col gap-6 sm:gap-2 justify-between items-start sm:items-end mt-2 sm:mt-0 pt-4 sm:pt-0 border-t sm:border-0 border-[#253B44]">
-                      <div className="flex gap-2 mb-2">
-                        <button onClick={() => { setSelectedEntrega(epi); setReturnForm({ ...returnForm, motivoDevolucao: "" }); setShowReturnModal(true); }} className="p-2 text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors" title="Devolver" >
-                          <ArrowDownLeft size={20} />
-                        </button>
-                        <button onClick={() => { setSelectedEntrega(epi); setEditForm({ dataEntrega: epi.delivery, ca: epi.ca, quantidade: epi.quantidade || 1, observacoes: epi.observacoes || "" }); setShowEditModal(true); }} className="p-2 text-[#CBD5E1] hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Editar" >
-                          <Edit2 size={20} />
-                        </button>
-                        <button onClick={() => handleDeleteDelivery(epi.id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Excluir" >
-                          <Trash2 size={20} />
-                        </button>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-[#253B44]">
+                      <div className="flex items-center gap-6">
+                        <div>
+                          <p className="text-[11px] text-[#475569] uppercase font-bold tracking-wider mb-0.5">
+                            Data de Entrega
+                          </p>
+                          <p className="text-sm text-[#CBD5E1] font-medium">
+                            {epi.delivery}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] text-[#475569] uppercase font-bold tracking-wider mb-0.5">
+                            Vencimento
+                          </p>
+                          <p className="text-sm text-[#FFA767] font-bold">
+                            {epi.valid}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex gap-6 sm:gap-4">
-                        <div className="sm:text-right">
-                        <p className="text-[11px] text-[#475569] uppercase font-bold tracking-wider mb-0.5">
-                          Data de Entrega
-                        </p>
-                        <p className="text-sm text-[#CBD5E1] font-medium">
-                          {epi.delivery}
-                        </p>
-                      </div>
-                      <div className="sm:text-right">
-                        <p className="text-[11px] text-[#475569] uppercase font-bold tracking-wider mb-0.5">
-                          Vencimento
-                        </p>
-                        <p className="text-sm text-[#FFA767] font-bold">
-                          {epi.valid}
-                        </p>
-                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => { setSelectedEntrega(epi); setReturnForm({ ...returnForm, motivoDevolucao: "" }); setShowReturnModal(true); }} className="flex-1 sm:flex-none p-2 md:px-3 text-blue-400 bg-blue-400/10 hover:bg-blue-400/20 rounded-xl transition-colors flex items-center justify-center" title="Devolver" >
+                          <ArrowDownLeft size={18} />
+                        </button>
+                        <button onClick={() => { setSelectedEntrega(epi); setEditForm({ dataEntrega: epi.delivery, ca: epi.ca, quantidade: epi.quantidade || 1, observacoes: epi.observacoes || "" }); setShowEditModal(true); }} className="flex-1 sm:flex-none p-2 md:px-3 text-[#CBD5E1] bg-[#0D2027] hover:bg-white/10 rounded-xl transition-colors flex items-center justify-center border border-[#253B44]" title="Editar" >
+                          <Edit2 size={18} />
+                        </button>
+                        <button onClick={() => handleDeleteDelivery(epi.id)} className="flex-1 sm:flex-none p-2 md:px-3 text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded-xl transition-colors flex items-center justify-center" title="Excluir" >
+                          <Trash2 size={18} />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -520,17 +521,17 @@ export function EmployeeDetails({
                       key={entrega.id}
                       className="bg-[#152A32] p-5 rounded-2xl shadow-sm border border-[#253B44]"
                     >
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-lg bg-[#0D2027] flex items-center justify-center shrink-0 border border-[#253B44] overflow-hidden">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="flex items-start sm:items-center gap-3">
+                          <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl bg-[#0D2027] flex items-center justify-center shrink-0 border border-[#253B44] overflow-hidden">
                             {entrega.fotoUrl ? (
                               <img src={entrega.fotoUrl} alt={entrega.codigoEpi} className="w-full h-full object-cover" />
                             ) : (
-                              <span className="text-xl">🧰</span>
+                              <span className="text-xl md:text-2xl">🧰</span>
                             )}
                           </div>
-                          <div>
-                            <h4 className="font-bold text-[#E2E8F0]">
+                          <div className="flex-1 min-w-0 pr-2">
+                            <h4 className="font-bold text-[#E2E8F0] text-sm md:text-base leading-tight mb-0.5" style={{ wordBreak: "break-word" }}>
                               {entrega.codigoEpi}
                             </h4>
                             <p className="text-sm text-[#64748B]">
@@ -539,29 +540,29 @@ export function EmployeeDetails({
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
                           <span
                             className={cn(
                               "px-3 py-1 rounded-full text-xs font-bold",
                               entrega.dataDevolucao
-                                ? "bg-gray-100 text-[#94A3B8]"
-                                : "bg-[#253B44] text-green-700",
+                                ? "bg-[#253B44] text-[#94A3B8]"
+                                : "bg-[#253B44] text-green-500",
                             )}
                           >
                             {entrega.dataDevolucao ? "Devolvido" : "Em uso"}
                           </span>
-                          <div className="flex gap-1">
-                            <button onClick={() => { setSelectedEntrega(entrega); setEditForm({ dataEntrega: entrega.dataEntrega, ca: entrega.ca, quantidade: entrega.quantidade || 1, observacoes: entrega.observacoes || "" }); setShowEditModal(true); }} className="p-2 text-[#CBD5E1] hover:text-white hover:bg-white/10 rounded-lg transition-colors" title="Editar" >
-                              <Edit2 size={16} />
+                          <div className="flex gap-2">
+                            <button onClick={() => { setSelectedEntrega(entrega); setEditForm({ dataEntrega: entrega.dataEntrega, ca: entrega.ca, quantidade: entrega.quantidade || 1, observacoes: entrega.observacoes || "" }); setShowEditModal(true); }} className="flex-1 sm:flex-none p-2 md:px-3 text-[#CBD5E1] bg-[#0D2027] hover:bg-white/10 rounded-xl transition-colors flex items-center justify-center border border-[#253B44]" title="Editar" >
+                              <Edit2 size={18} />
                             </button>
-                            <button onClick={() => handleDeleteDelivery(entrega.id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors" title="Excluir" >
-                              <Trash2 size={16} />
+                            <button onClick={() => handleDeleteDelivery(entrega.id)} className="flex-1 sm:flex-none p-2 md:px-3 text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded-xl transition-colors flex items-center justify-center" title="Excluir" >
+                              <Trash2 size={18} />
                             </button>
                           </div>
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-50">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2 pt-4 border-t border-[#253B44]">
                         <div>
                           <p className="text-[11px] text-[#475569] uppercase font-bold tracking-wider mb-1">
                             Entrega
